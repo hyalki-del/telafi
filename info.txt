@@ -1,0 +1,22 @@
+# İnteraktif Gitar Fretboard & Akor/Gam Motoru
+
+Bu proje; gitaristler, müzik teorisi öğrenenler ve geliştiriciler için tasarlanmış, modern Web Audio API tabanlı interaktif bir web uygulamasıdır. Proje, kod kalitesini artırmak, hataları izole etmek ve ilerideki görsel tema geliştirmelerini kolaylaştırmak amacıyla tamamen **modüler ES6 mimarisiyle** tasarlanmıştır.
+
+---
+
+## 📂 Proje Mimarisi ve Dosya Hıyerarşisi
+
+Proje, sorumluluklarına göre (SoC - Separation of Concerns) şu modüler yapıda ayrıştırılmıştır:
+
+```text
+gitar-motoru/
+│
+├── index.html              # Ana iskelet, HTML elementleri ve konteynerler
+├── style.css               # Tüm UI stilleri, tema değişkenleri ve fretboard görselleri
+│
+└── js/
+    ├── main.js             # Ana yönetici (Uygulama yaşam döngüsü, UI dinleyicileri ve köprü)
+    ├── audioEngine.js      # Web Audio API (Osilatörler, ses motoru değişimi, tel bükme ve attack rampa yönetimi)
+    ├── fretboard.js        # Klavye çizimi, teller, perdeler, inlays ve görsel render motoru
+    ├── scaleEngine.js      # Gam verileri, aralık formülleri ve seviye (Start, Understand, Advance) yapıları
+    └── chordEngine.js      # Akor formülleri, CAGED, Drop-2, Triad ve caz pozisyon matrisleri
