@@ -76,16 +76,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
+            // Kalından tize doğru arpej sıralaması
             activeFreqs.sort((a, b) => b.stringIdx - a.stringIdx);
 
             const speedSliderEl = document.getElementById('speed-slider');
             const speedMultiplier = speedSliderEl ? parseFloat(speedSliderEl.value) : 1.0;
             const delayStep = 0.115 / speedMultiplier; 
 
+            // setTimeout yerine Web Audio API zaman offset yönetimi (Sesin kesilmesini önler)
             activeFreqs.forEach((item, idx) => {
-                setTimeout(() => {
-                    playTone(item.freq, 0, 2.0);
-                }, idx * delayStep * 1000);
+                playTone(item.freq, idx * delayStep, 2.0);
             });
         });
     }
