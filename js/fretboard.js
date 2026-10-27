@@ -18,6 +18,9 @@ export function buildFretboard() {
     const fretboardEl = document.getElementById('fretboard');
     fretboardEl.innerHTML = '';
 
+    // DOM Reflow maliyetini sıfırlamak için DocumentFragment kullanıyoruz
+    const fragment = document.createDocumentFragment();
+
     stringTunings.forEach((stringInfo, stringIndex) => {
         const row = document.createElement('div');
         row.className = 'string-row';
@@ -77,9 +80,10 @@ export function buildFretboard() {
 
             row.appendChild(fret);
         }
-        fretboardEl.appendChild(row);
+        fragment.appendChild(row);
     });
 
+    fretboardEl.appendChild(fragment);
     fretboardEl.addEventListener('contextmenu', e => e.preventDefault());
 
     window.addEventListener('mousemove', (e) => { updateBend(e.clientY); });
