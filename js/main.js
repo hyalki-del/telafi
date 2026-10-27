@@ -9,38 +9,112 @@ let currentScale = 'Minor Pentatonic';
 let currentChordType = 'maj';
 let currentPositionIndex = 0;
 
-// UI Menüleri
-document.getElementById('options-toggle-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    document.getElementById('options-dropdown').classList.toggle('show');
-});
-window.onclick = () => {
-    document.getElementById('options-dropdown').classList.remove('show');
-};
+// UI Menüleri ve Dinleyiciler
+document.addEventListener('DOMContentLoaded', () => {
+    
+    // Seçenekler Menüsü Toggle
+    const optionsBtn = document.getElementById('options-toggle-btn');
+    const optionsDropdown = document.getElementById('options-dropdown');
+    
+    if (optionsBtn && optionsDropdown) {
+        optionsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            optionsDropdown.classList.toggle('show');
+        });
+    }
 
-document.getElementById('sound-engine-select').addEventListener('change', (e) => {
-    setSoundEngine(e.target.value);
-});
+    window.addEventListener('click', () => {
+        if (optionsDropdown) optionsDropdown.classList.remove('show');
+    });
 
-document.getElementById('speed-slider').addEventListener('input', (e) => {
-    document.getElementById('speed-val').innerText = parseFloat(e.target.value).toFixed(1) + 'x';
-});
+    const soundSelect = document.getElementById('sound-engine-select');
+    if (soundSelect) {
+        soundSelect.addEventListener('change', (e) => {
+            setSoundEngine(e.target.value);
+        });
+    }
 
-// Mod Değiştirme
-document.getElementById('btn-mode-scales').addEventListener('click', () => switchMode('scales'));
-document.getElementById('btn-mode-chords').addEventListener('click', () => switchMode('chords'));
+    const speedSlider = document.getElementById('speed-slider');
+    if (speedSlider) {
+        speedSlider.addEventListener('input', (e) => {
+            const speedVal = document.getElementById('speed-val');
+            if (speedVal) speedVal.innerText = parseFloat(e.target.value).toFixed(1) + 'x';
+        });
+    }
+
+    // Mod Değiştirme Butonları
+    const btnScales = document.getElementById('btn-mode-scales');
+    const btnChords = document.getElementById('btn-mode-chords');
+
+    if (btnScales) btnScales.addEventListener('click', () => switchMode('scales'));
+    if (btnChords) btnChords.addEventListener('click', () => switchMode('chords'));
+
+    // Pozisyon Değiştirme ve Dinle Butonları
+    const posCycleBtn = document.getElementById('position-cycle-btn');
+    if (posCycleBtn) {
+        posCycleBtn.addEventListener('click', () => {
+            const positions = getAllChordPositions(currentRoot, currentChordType);
+            currentPositionIndex = (currentPositionIndex + 1) % positions.length;
+            updateChordView();
+        });
+    }
+
+    const playChordBtn = document.getElementById('play-chord-btn');
+    if (playChordBtn) {
+        playChordBtn.addEventListener('click', () => {
+            const positions = getAllChordPositions(currentRoot, currentChordType);
+            if (!positions || positions.length === 0) return;
+            const currentPos = positions[currentPositionIndex];
+            
+            let activeFreqs = [];
+            currentPos.tab.forEach((tabVal, stringIdx) => {
+                if (tabVal !== "x") {
+                    const fretIdx = parseInt(tabVal);
+                    const stringInfo = stringTunings[stringIdx];
+                    const freq = stringInfo.freq * Math.pow(2, fretIdx / 12);
+                    activeFreqs.push({ freq, stringIdx });
+                }
+            });
+
+            activeFreqs.sort((a, b) => b.stringIdx - a.stringIdx);
+
+            const speedSliderEl = document.getElementById('speed-slider');
+            const speedMultiplier = speedSliderEl ? parseFloat(speedSliderEl.value) : 1.0;
+            const delayStep = 0.115 / speedMultiplier; 
+
+            activeFreqs.forEach((item, idx) => {
+                setTimeout(() => {
+                    playTone(item.freq, 0, 2.0);
+                }, idx * delayStep * 1000);
+            });
+        });
+    }
+
+    // Başlangıç Kurulumu
+    buildControls();
+    buildFretboard();
+    switchMode('scales');
+});
 
 function switchMode(mode) {
     currentMode = mode;
-    document.getElementById('btn-mode-scales').classList.toggle('active', mode === 'scales');
-    document.getElementById('btn-mode-chords').classList.toggle('active', mode === 'chords');
-
-    document.getElementById('panel-scales').classList.toggle('hidden', mode !== 'scales');
-    document.getElementById('panel-chords-ctrl').classList.toggle('hidden', mode !== 'chords');
-    document.getElementById('chord-action-bar').classList.toggle('hidden', mode !== 'chords');
     
-    document.getElementById('bottom-scale-theory-panel').classList.toggle('hidden', mode !== 'scales');
-    document.getElementById('bottom-theory-panel').classList.toggle('hidden', mode !== 'chords');
+    const btnScales = document.getElementById('btn-mode-scales');
+    const btnChords = document.getElementById('btn-mode-chords');
+    if (btnScales) btnScales.classList.toggle('active', mode === 'scales');
+    if (btnChords) btnChords.classList.toggle('active', mode === 'chords');
+
+    const panelScales = document.getElementById('panel-scales');
+    const panelChords = document.getElementById('panel-chords-ctrl');
+    const actionBar = document.getElementById('chord-action-bar');
+    const scaleTheory = document.getElementById('bottom-scale-theory-panel');
+    const chordTheory = document.getElementById('bottom-theory-panel');
+
+    if (panelScales) panelScales.classList.toggle('hidden', mode !== 'scales');
+    if (panelChords) panelChords.classList.toggle('hidden', mode !== 'chords');
+    if (actionBar) actionBar.classList.toggle('hidden', mode !== 'chords');
+    if (scaleTheory) scaleTheory.classList.toggle('hidden', mode !== 'scales');
+    if (chordTheory) chordTheory.classList.toggle('hidden', mode !== 'chords');
 
     updateFretboardDisplay();
     if (mode === 'scales') updateScaleView();
@@ -48,7 +122,12 @@ function switchMode(mode) {
 }
 
 function updateScaleView() {
-    if (!currentScale) return;
+    if (!currentScale) {
+        const display = document.getElementById("scale-theory-display");
+        if (display) display.innerHTML = "Gam seçilmedi.";
+        return;
+    }
+
     let scaleObj = null;
     for (let tier in scaleTiers) {
         if (scaleTiers[tier][currentScale]) scaleObj = scaleTiers[tier][currentScale];
@@ -58,14 +137,19 @@ function updateScaleView() {
     const rootIndex = noteNames.indexOf(currentRoot);
     const notes = scaleObj.intervals.map(i => noteNames[(rootIndex + i) % 12]);
 
-    document.getElementById("bottom-scale-title").innerText = `${currentRoot} ${currentScale}`;
+    const titleEl = document.getElementById("bottom-scale-title");
+    if (titleEl) titleEl.innerText = `${currentRoot} ${currentScale}`;
+    
     const notesHTML = notes.map(n => `<span class="note-badge">${n}</span>`).join('');
     
-    document.getElementById("scale-theory-display").innerHTML = `
-        <div style="margin-bottom:8px;"><b>Gam Notaları:</b> ${notesHTML}</div>
-        <div style="margin-bottom:8px;"><b>Aralık Formülü:</b> <span style="color:#ffb400; font-weight:bold;">${scaleObj.formula}</span></div>
-        <div style="background:#121212; padding:10px; border-radius:6px; border-left:3px solid var(--accent-color); margin-top:6px;">${scaleObj.desc}</div>
-    `;
+    const displayEl = document.getElementById("scale-theory-display");
+    if (displayEl) {
+        displayEl.innerHTML = `
+            <div style="margin-bottom:8px;"><b>Gam Notaları:</b> ${notesHTML}</div>
+            <div style="margin-bottom:8px;"><b>Aralık Formülü:</b> <span style="color:#ffb400; font-weight:bold;">${scaleObj.formula}</span></div>
+            <div style="background:#121212; padding:10px; border-radius:6px; border-left:3px solid var(--accent-color); margin-top:6px;">${scaleObj.desc}</div>
+        `;
+    }
 }
 
 function updateChordView() {
@@ -79,22 +163,32 @@ function updateChordView() {
     if (currentPositionIndex >= positions.length) currentPositionIndex = 0;
     const currentPos = positions[currentPositionIndex];
 
-    document.getElementById("pos-btn-text").innerHTML = `🔄 Alternatif Pozisyon: <b style="color:#ffffff;">${currentPos.sys} (${currentPos.name})</b> <span style="color:var(--alt-color);">(${currentPositionIndex + 1} / ${positions.length})</span>`;
-    document.getElementById("bottom-chord-title").innerText = chordName;
+    const posBtnText = document.getElementById("pos-btn-text");
+    if (posBtnText) {
+        posBtnText.innerHTML = `🔄 Alternatif Pozisyon: <b style="color:#ffffff;">${currentPos.sys} (${currentPos.name})</b> <span style="color:var(--alt-color);">(${currentPositionIndex + 1} / ${positions.length})</span>`;
+    }
+    
+    const chordTitle = document.getElementById("bottom-chord-title");
+    if (chordTitle) chordTitle.innerText = chordName;
 
     const notesHTML = notes.map(n => `<span class="note-badge">${n}</span>`).join('');
-    document.getElementById("theory-display").innerHTML = `
-        <div style="margin-bottom:8px;"><b>Akor Notaları:</b> ${notesHTML}</div>
-        <div style="margin-bottom:8px;"><b>Aralık Formülü:</b> <span style="color:#ffb400; font-weight:bold;">${formula.name}</span></div>
-        <div style="margin-bottom:8px;"><b>Mevcut Alternatif (Sarı Yanan):</b> <span style="color:var(--alt-color); font-weight:bold;">${currentPos.sys} - ${currentPos.name}</span></div>
-        <div style="background:#121212; padding:10px; border-radius:6px; border-left:3px solid var(--alt-color); margin-top:6px;">${formula.theoryDesc}</div>
-    `;
+    const theoryDisplay = document.getElementById("theory-display");
+    if (theoryDisplay) {
+        theoryDisplay.innerHTML = `
+            <div style="margin-bottom:8px;"><b>Akor Notaları:</b> ${notesHTML}</div>
+            <div style="margin-bottom:8px;"><b>Aralık Formülü:</b> <span style="color:#ffb400; font-weight:bold;">${formula.name}</span></div>
+            <div style="margin-bottom:8px;"><b>Mevcut Alternatif (Sarı Yanan):</b> <span style="color:var(--alt-color); font-weight:bold;">${currentPos.sys} - ${currentPos.name}</span></div>
+            <div style="background:#121212; padding:10px; border-radius:6px; border-left:3px solid var(--alt-color); margin-top:6px;">${formula.theoryDesc}</div>
+        `;
+    }
 
     updateFretboardDisplay();
 }
 
 function updateFretboardDisplay() {
     const allFrets = document.querySelectorAll('.fret');
+    if (!allFrets || allFrets.length === 0) return;
+
     allFrets.forEach(f => f.classList.remove('in-scale', 'is-root', 'in-chord', 'alt-voicing'));
 
     const rootIndex = noteNames.indexOf(currentRoot);
@@ -149,89 +243,65 @@ function updateFretboardDisplay() {
     }
 }
 
-document.getElementById('position-cycle-btn').addEventListener('click', () => {
-    const positions = getAllChordPositions(currentRoot, currentChordType);
-    currentPositionIndex = (currentPositionIndex + 1) % positions.length;
-    updateChordView();
-});
-
-document.getElementById('play-chord-btn').addEventListener('click', () => {
-    const positions = getAllChordPositions(currentRoot, currentChordType);
-    const currentPos = positions[currentPositionIndex];
-    
-    let activeFreqs = [];
-    currentPos.tab.forEach((tabVal, stringIdx) => {
-        if (tabVal !== "x") {
-            const fretIdx = parseInt(tabVal);
-            const stringInfo = stringTunings[stringIdx];
-            const freq = stringInfo.freq * Math.pow(2, fretIdx / 12);
-            activeFreqs.push({ freq, stringIdx });
-        }
-    });
-
-    activeFreqs.sort((a, b) => b.stringIdx - a.stringIdx);
-
-    const speedMultiplier = parseFloat(document.getElementById('speed-slider').value);
-    const baseDelay = 0.115;
-    const delayStep = baseDelay / speedMultiplier; 
-
-    const now = audioCtxTime(); // Fixed reference or simple audio context check
-    // Note: audioCtx is managed inside audioEngine, let's trigger through a clean helper or directly if exposed.
-    // Actually, playTone manages audioCtx internally. Let's look at how playTone works:
-    activeFreqs.forEach((item, idx) => {
-        // We can use performance.now() or let playTone handle context time inside.
-        // Let's pass a small delay offset or let audioEngine handle start time.
-    });
-});
-
-// Kontrolleri ve Arayüz Butonlarını İnşa Etme
 function buildControls() {
+    // Root Note (Gam) Butonları
     const rootContainer = document.getElementById('root-selector');
-    noteNames.forEach(note => {
-        const btn = document.createElement('button');
-        btn.className = 'ctrl-btn' + (note === currentRoot ? ' active' : '');
-        btn.textContent = note;
-        btn.onclick = () => {
-            currentRoot = note;
-            document.querySelectorAll('#root-selector .ctrl-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            syncRootButtons();
-            updateFretboardDisplay();
-        };
-        rootContainer.appendChild(btn);
-    });
+    if (rootContainer) {
+        noteNames.forEach(note => {
+            const btn = document.createElement('button');
+            btn.className = 'ctrl-btn' + (note === currentRoot ? ' active' : '');
+            btn.textContent = note;
+            btn.onclick = () => {
+                currentRoot = note;
+                document.querySelectorAll('#root-selector .ctrl-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                syncRootButtons();
+                updateFretboardDisplay();
+            };
+            rootContainer.appendChild(btn);
+        });
+    }
 
+    // Kök Ses (Akor) Butonları
     const chordRootContainer = document.getElementById('chord-root-buttons');
-    noteNames.forEach(note => {
-        const btn = document.createElement('button');
-        btn.className = 'ctrl-btn' + (note === currentRoot ? ' active' : '');
-        btn.textContent = note;
-        btn.onclick = () => {
-            currentRoot = note;
-            currentPositionIndex = 0;
-            syncRootButtons();
-            updateChordView();
-        };
-        chordRootContainer.appendChild(btn);
-    });
+    if (chordRootContainer) {
+        noteNames.forEach(note => {
+            const btn = document.createElement('button');
+            btn.className = 'ctrl-btn' + (note === currentRoot ? ' active' : '');
+            btn.textContent = note;
+            btn.onclick = () => {
+                currentRoot = note;
+                currentPositionIndex = 0;
+                syncRootButtons();
+                updateChordView();
+            };
+            chordRootContainer.appendChild(btn);
+        });
+    }
 
+    // Akor Tipi Butonları
     const chordTypeContainer = document.getElementById('chord-type-buttons');
-    chordTypes.forEach(t => {
-        const btn = document.createElement('button');
-        btn.className = 'ctrl-btn' + (t.id === currentChordType ? ' active' : '');
-        btn.textContent = t.name;
-        btn.onclick = () => {
-            currentChordType = t.id;
-            currentPositionIndex = 0;
-            document.querySelectorAll('#chord-type-buttons .ctrl-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            updateChordView();
-        };
-        chordTypeContainer.appendChild(btn);
-    });
+    if (chordTypeContainer) {
+        chordTypes.forEach(t => {
+            const btn = document.createElement('button');
+            btn.className = 'ctrl-btn' + (t.id === currentChordType ? ' active' : '');
+            btn.textContent = t.name;
+            btn.onclick = () => {
+                currentChordType = t.id;
+                currentPositionIndex = 0;
+                document.querySelectorAll('#chord-type-buttons .ctrl-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                updateChordView();
+            };
+            chordTypeContainer.appendChild(btn);
+        });
+    }
 
+    // Gam Seviyeleri (Start, Understand, Advance)
     const populateTier = (containerId, tierObj, includeClear = false) => {
         const container = document.getElementById(containerId);
+        if (!container) return;
+
         if (includeClear) {
             const clearBtn = document.createElement('button');
             clearBtn.className = 'ctrl-btn clear-btn';
@@ -243,7 +313,8 @@ function buildControls() {
                 });
                 clearBtn.classList.add('active');
                 updateFretboardDisplay();
-                document.getElementById("scale-theory-display").innerHTML = "Gam seçilmedi.";
+                const display = document.getElementById("scale-theory-display");
+                if (display) display.innerHTML = "Gam seçilmedi.";
             };
             container.appendChild(clearBtn);
         }
@@ -254,7 +325,9 @@ function buildControls() {
             btn.textContent = scaleName;
             btn.onclick = () => {
                 currentScale = scaleName;
-                document.querySelectorAll('#panel-scales .ctrl-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('#panel-scales .ctrl-btn').forEach(b => {
+                    if (!b.classList.contains('clear-btn')) b.classList.remove('active');
+                });
                 btn.classList.add('active');
                 updateFretboardDisplay();
             };
@@ -275,42 +348,3 @@ function syncRootButtons() {
         b.classList.toggle('active', b.textContent === currentRoot);
     });
 }
-
-// Play chord button fix for audio context time in main.js
-import { playTone } from './audioEngine.js';
-// (Note: playTone handles audioContext initialization internally).
-document.getElementById('play-chord-btn').onclick = () => {
-    const positions = getAllChordPositions(currentRoot, currentChordType);
-    const currentPos = positions[currentPositionIndex];
-    
-    let activeFreqs = [];
-    currentPos.tab.forEach((tabVal, stringIdx) => {
-        if (tabVal !== "x") {
-            const fretIdx = parseInt(tabVal);
-            const stringInfo = stringTunings[stringIdx];
-            const freq = stringInfo.freq * Math.pow(2, fretIdx / 12);
-            activeFreqs.push({ freq, stringIdx });
-        }
-    });
-
-    activeFreqs.sort((a, b) => b.stringIdx - a.stringIdx);
-
-    const speedMultiplier = parseFloat(document.getElementById('speed-slider').value);
-    const delayStep = 0.115 / speedMultiplier; 
-
-    // We can just call playTone with staggered start times. 
-    // Since AudioContext.currentTime will be evaluated inside playTone, 
-    // let's make sure playTone handles relative offsets or accepts context time.
-    // Actually, let's do a quick helper in audioEngine or calculate inside main using a shared audio time if needed.
-    // For simplicity, playTone uses audioCtx.currentTime when called. If called in a loop with setTimeout or absolute offsets:
-    activeFreqs.forEach((item, idx) => {
-        setTimeout(() => {
-            playTone(item.freq, 0, 2.0);
-        }, idx * delayStep * 1000);
-    });
-};
-
-// Uygulama Başlangıcı
-buildControls();
-buildFretboard();
-updateFretboardDisplay();
