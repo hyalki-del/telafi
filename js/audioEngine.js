@@ -1,3 +1,19 @@
+let audioCtx = null;
+let currentSoundEngine = 'guitar';
+let activeBend = null;
+let initialY = 0;
+let safetyTimeout = null;
+
+export function setSoundEngine(val) {
+    currentSoundEngine = val;
+}
+
+function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+}
+
 export function playTone(frequency, startTime = 0, duration = 2.0, targetGainNode = null) {
     initAudio();
     if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -52,4 +68,87 @@ export function playTone(frequency, startTime = 0, duration = 2.0, targetGainNod
     osc2.stop(start + duration);
 
     return { osc1, osc2, gainNode };
+}
+
+export function startBendingNote(frequency, fretElement, stringPathEl, fretLeftX, clientY) {
+    initAudio();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (safetyTimeout) clearTimeout(safetyTimeout);
+
+    initialY = clientY;
+    const now = audioCtx.currentTime;
+    
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    osc1.type = currentSoundEngine === 'piano' ? 'sine' : 'sawtooth';
+    osc2.type = 'triangle';
+    osc1.frequency.setValueAtTime(frequency, now);
+    osc2.frequency.setValueAtTime(frequency, now);
+
+    gainNode.gain.setValueAtTime(0.0001, now);
+    gainNode.gain.linearRampToValueAtTime(0.4, now + 0.015);
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(frequency * 3.5, now);
+
+    osc1.connect(filter);
+    osc2.connect(filter);
+    filter.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    osc1.start(now);
+    osc2.start(now);
+
+    fretElement.classList.add('bending');
+
+    activeBend = {
+        osc1, osc2, gainNode,
+        baseFreq: frequency,
+        fretElement, stringPathEl, fretLeftX,
+        totalWidth: stringPathEl.parentElement.clientWidth
+    };
+
+    safetyTimeout = setTimeout(() => { releaseBend(); }, 3000);
+}
+
+export function updateBend(currentY) {
+    if (!activeBend) return;
+    let deltaY = currentY - initialY;
+    let bendMagnitude = Math.abs(deltaY);
+    let bendSemitones = Math.min(2, (bendMagnitude / 50) * 2);
+    let newFreq = activeBend.baseFreq * Math.pow(2, bendSemitones / 12);
+
+    const now = audioCtx.currentTime;
+    activeBend.osc1.frequency.setValueAtTime(newFreq, now);
+    activeBend.osc2.frequency.setValueAtTime(newFreq, now);
+
+    const midX = activeBend.fretLeftX + 30;
+    const midY = 20 + (deltaY * 0.7);
+    const pathData = `M 0 20 Q ${midX} ${midY} ${activeBend.totalWidth} 20`;
+    activeBend.stringPathEl.setAttribute('d', pathData);
+}
+
+export function releaseBend() {
+    if (!activeBend) return;
+    if (safetyTimeout) clearTimeout(safetyTimeout);
+
+    const now = audioCtx.currentTime;
+    activeBend.gainNode.gain.setValueAtTime(activeBend.gainNode.gain.value, now);
+    activeBend.gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+    activeBend.osc1.stop(now + 0.4);
+    activeBend.osc2.stop(now + 0.4);
+
+    try {
+        activeBend.osc1.disconnect();
+        activeBend.osc2.disconnect();
+        activeBend.gainNode.disconnect();
+    } catch (e) {}
+
+    activeBend.stringPathEl.setAttribute('d', `M 0 20 L ${activeBend.totalWidth} 20`);
+    activeBend.fretElement.classList.remove('bending');
+    activeBend = null;
 }
