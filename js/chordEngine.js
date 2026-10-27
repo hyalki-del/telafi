@@ -49,73 +49,100 @@ export function getAllChordPositions(root, type) {
     const dFret = (rootIndex - noteNames.indexOf("D") + 12) % 12;
     const gFret = (rootIndex - noteNames.indexOf("G") + 12) % 12;
 
-    let positions = [];
-    const sf = (f) => (f < 0 ? f + 12 : (f > 12 ? f - 12 : f));
+    let rawPositions = [];
 
     if (type === "maj") {
-        positions.push({ sys: "CAGED", name: "E-Formu Barre (Kök)", tab: [eFret, eFret, eFret+1, eFret+2, eFret+2, eFret] });
-        positions.push({ sys: "CAGED", name: "A-Formu Barre (Kök)", tab: [aFret, aFret+2, aFret+2, aFret+2, aFret, "x"] });
-        positions.push({ sys: "Triad", name: "Üst 3 Tel Kompakt Triad", tab: [sf(gFret+2), gFret, gFret, "x", "x", "x"] });
-        positions.push({ sys: "Drop-2", name: "D-Teli Tabanlı Drop-2", tab: [dFret+2, dFret+3, dFret+2, dFret, "x", "x"] });
+        rawPositions.push({ sys: "CAGED", name: "E-Formu Barre (Kök)", tab: [eFret, eFret, eFret+1, eFret+2, eFret+2, eFret] });
+        rawPositions.push({ sys: "CAGED", name: "A-Formu Barre (Kök)", tab: [aFret, aFret+2, aFret+2, aFret+2, aFret, "x"] });
+        rawPositions.push({ sys: "Triad", name: "Üst 3 Tel Kompakt Triad", tab: ["x", "x", "x", dFret, dFret+2, dFret+4] });
+        rawPositions.push({ sys: "Drop-2", name: "D-Teli Tabanlı Drop-2", tab: ["x", "x", dFret, dFret+2, dFret+3, dFret+2] });
     } else if (type === "m") {
-        positions.push({ sys: "CAGED", name: "E-Formu Minör", tab: [eFret, eFret, eFret, eFret+2, eFret+2, eFret] });
-        positions.push({ sys: "CAGED", name: "A-Formu Minör", tab: [aFret, aFret+1, aFret+2, aFret+2, aFret, "x"] });
-        positions.push({ sys: "Triad", name: "Üst 3 Tel Minör Triad", tab: [sf(gFret+1), gFret, gFret, "x", "x", "x"] });
-        positions.push({ sys: "Drop-2", name: "D-Teli Tabanlı Minör Drop-2", tab: [dFret+1, dFret+3, dFret+2, dFret, "x", "x"] });
+        rawPositions.push({ sys: "CAGED", name: "E-Formu Minör", tab: [eFret, eFret, eFret, eFret+2, eFret+2, eFret] });
+        rawPositions.push({ sys: "CAGED", name: "A-Formu Minör", tab: [aFret, aFret+1, aFret+2, aFret+2, aFret, "x"] });
+        rawPositions.push({ sys: "Triad", name: "Üst 3 Tel Minör Triad", tab: ["x", "x", "x", dFret, dFret+2, dFret+3] });
+        rawPositions.push({ sys: "Drop-2", name: "D-Teli Tabanlı Minör Drop-2", tab: ["x", "x", dFret, dFret+2, dFret+3, dFret+1] });
     } else if (type === "7") {
-        positions.push({ sys: "CAGED", name: "E-Formu Dom7", tab: [eFret, eFret, eFret+1, eFret, eFret+2, eFret] });
-        positions.push({ sys: "CAGED", name: "A-Formu Dom7", tab: [aFret, aFret+2, aFret, aFret+2, aFret, "x"] });
-        positions.push({ sys: "Shell", name: "3-Ses Caz Voicing", tab: ["x", eFret, eFret+1, "x", "x", eFret] });
-        positions.push({ sys: "Drop-2", name: "D-Teli Dom7", tab: [dFret+3, dFret+2, dFret+3, dFret, "x", "x"] });
+        rawPositions.push({ sys: "CAGED", name: "E-Formu Dom7", tab: [eFret, eFret+2, eFret+1, eFret, eFret+2, eFret] });
+        rawPositions.push({ sys: "CAGED", name: "A-Formu Dom7", tab: [aFret, aFret+2, aFret, aFret+2, aFret, "x"] });
+        rawPositions.push({ sys: "Shell", name: "3-Ses Caz Voicing", tab: [eFret, "x", eFret+1, eFret, "x", "x"] });
+        rawPositions.push({ sys: "Drop-2", name: "D-Teli Dom7", tab: ["x", "x", dFret, dFret+3, dFret+2, dFret+3] });
     } else if (type === "maj7") {
-        positions.push({ sys: "CAGED", name: "E-Formu Maj7", tab: [eFret, sf(eFret-1), eFret+1, eFret+1, "x", eFret] });
-        positions.push({ sys: "CAGED", name: "A-Formu Maj7", tab: [aFret, aFret+2, aFret+1, aFret+2, aFret, "x"] });
-        positions.push({ sys: "Drop-2", name: "Üst 4 Tel Maj7", tab: [dFret+2, dFret+2, dFret+2, dFret, "x", "x"] });
+        rawPositions.push({ sys: "CAGED", name: "E-Formu Maj7", tab: [eFret, eFret+1, eFret+1, eFret, "x", eFret] });
+        rawPositions.push({ sys: "CAGED", name: "A-Formu Maj7", tab: [aFret, aFret+2, aFret+1, aFret+2, aFret, "x"] });
+        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Maj7", tab: ["x", "x", dFret, dFret+2, dFret+2, dFret+2] });
     } else if (type === "m7") {
-        positions.push({ sys: "CAGED", name: "E-Formu Min7", tab: [eFret, eFret, eFret, eFret, eFret+2, eFret] });
-        positions.push({ sys: "CAGED", name: "A-Formu Min7", tab: [aFret, aFret+1, aFret, aFret+2, aFret, "x"] });
-        positions.push({ sys: "Drop-2", name: "Üst 4 Tel Min7", tab: [dFret+1, dFret+1, dFret+1, dFret, "x", "x"] });
+        rawPositions.push({ sys: "CAGED", name: "E-Formu Min7", tab: [eFret, eFret+2, eFret, eFret, eFret, eFret] });
+        rawPositions.push({ sys: "CAGED", name: "A-Formu Min7", tab: [aFret, aFret+2, aFret, aFret+1, aFret, "x"] });
+        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Min7", tab: ["x", "x", dFret, dFret+1, dFret+1, dFret+1] });
     } else if (type === "m7b5") {
-        positions.push({ sys: "Jazz Voicing", name: "A-Teli Yarım Eksilmiş", tab: [aFret+1, aFret+1, aFret, aFret+1, "x", "x"] });
-        positions.push({ sys: "Jazz Voicing", name: "E-Teli Yarım Eksilmiş", tab: [eFret+1, eFret, eFret+1, eFret+2, "x", "x"] });
+        rawPositions.push({ sys: "Jazz Voicing", name: "A-Teli Yarım Eksilmiş", tab: ["x", "x", aFret, aFret+1, aFret+1, aFret+1] });
+        rawPositions.push({ sys: "Jazz Voicing", name: "E-Teli Yarım Eksilmiş", tab: ["x", "x", eFret+1, eFret+2, eFret, eFret+1] });
     } else if (type === "sus2") {
-        positions.push({ sys: "Standart", name: "E-Teli Sus2", tab: [eFret+2, eFret, eFret+2, eFret+2, "x", eFret] });
-        positions.push({ sys: "Standart", name: "A-Teli Sus2", tab: [aFret, aFret, aFret+2, aFret+2, aFret, "x"] });
+        rawPositions.push({ sys: "Standart", name: "E-Teli Sus2", tab: [eFret, "x", eFret+2, eFret+2, eFret, eFret+2] });
+        rawPositions.push({ sys: "Standart", name: "A-Teli Sus2", tab: ["x", aFret, aFret+2, aFret+2, aFret, aFret] });
     } else if (type === "sus4") {
-        positions.push({ sys: "Standart", name: "E-Teli Sus4", tab: [eFret, eFret, eFret+2, eFret+2, eFret+2, eFret] });
-        positions.push({ sys: "Standart", name: "A-Teli Sus4", tab: [aFret, aFret+3, aFret+2, aFret+2, aFret, "x"] });
+        rawPositions.push({ sys: "Standart", name: "E-Teli Sus4", tab: [eFret, eFret+2, eFret+2, eFret, eFret, eFret] });
+        rawPositions.push({ sys: "Standart", name: "A-Teli Sus4", tab: ["x", aFret, aFret+2, aFret+2, aFret+3, aFret] });
     } else if (type === "dim") {
-        positions.push({ sys: "Diminished", name: "A-Teli Kök Dim7", tab: [aFret+3, aFret+1, aFret+2, aFret+1, "x", "x"] });
-        positions.push({ sys: "Diminished", name: "E-Teli Kök Dim7", tab: [eFret+3, eFret+2, eFret+1, eFret+2, "x", "x"] });
+        rawPositions.push({ sys: "Diminished", name: "A-Teli Kök Dim7", tab: ["x", "x", aFret+1, aFret+2, aFret+1, aFret+3] });
+        rawPositions.push({ sys: "Diminished", name: "E-Teli Kök Dim7", tab: ["x", "x", eFret+1, eFret+2, eFret+2, eFret+3] });
     } else if (type === "aug") {
-        positions.push({ sys: "Augmented", name: "A-Teli Aug", tab: [aFret+1, aFret+2, aFret+2, aFret+3, "x", "x"] });
-        positions.push({ sys: "Augmented", name: "E-Teli Aug", tab: [eFret, eFret+1, eFret+1, eFret+2, "x", eFret] });
+        rawPositions.push({ sys: "Augmented", name: "A-Teli Aug", tab: ["x", "x", aFret+2, aFret+2, aFret+3, aFret+1] });
+        rawPositions.push({ sys: "Augmented", name: "E-Teli Aug", tab: [eFret, eFret+1, eFret+1, eFret+2, "x", eFret] });
     } else if (type === "6") {
-        positions.push({ sys: "Jazz Voicing", name: "A-Teli Majör 6", tab: [aFret+2, aFret, aFret+2, aFret+2, aFret, "x"] });
-        positions.push({ sys: "Drop-2", name: "Üst 4 Tel Majör 6", tab: [dFret+2, dFret+2, dFret+2, dFret, "x", "x"] });
+        rawPositions.push({ sys: "Jazz Voicing", name: "A-Teli Majör 6", tab: ["x", aFret, aFret+2, aFret+2, aFret, aFret+2] });
+        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Majör 6", tab: ["x", "x", dFret, dFret+2, dFret+2, dFret+2] });
     } else if (type === "m6") {
-        positions.push({ sys: "Jazz Voicing", name: "A-Teli Minör 6", tab: [aFret+1, aFret, aFret+2, aFret+2, aFret, "x"] });
-        positions.push({ sys: "Drop-2", name: "Üst 4 Tel Minör 6", tab: [dFret+1, dFret+2, dFret+2, dFret, "x", "x"] });
+        rawPositions.push({ sys: "Jazz Voicing", name: "A-Teli Minör 6", tab: ["x", aFret, aFret+2, aFret+2, aFret, aFret+1] });
+        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Minör 6", tab: ["x", "x", dFret, dFret+2, dFret+2, dFret+1] });
     } else if (type === "9") {
-        positions.push({ sys: "Jazz Voicing", name: "A-Teli Dom 9", tab: [aFret+2, aFret+2, aFret+3, aFret+2, aFret, "x"] });
-        positions.push({ sys: "Drop-2", name: "Üst 4 Tel Dom 9", tab: [dFret+2, dFret+2, dFret+3, dFret, "x", "x"] });
+        rawPositions.push({ sys: "Jazz Voicing", name: "A-Teli Dom 9", tab: ["x", aFret, aFret+2, aFret+3, aFret+2, aFret+2] });
+        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Dom 9", tab: ["x", "x", dFret, dFret+3, dFret+2, dFret+2] });
     } else if (type === "maj9") {
-        positions.push({ sys: "Jazz Voicing", name: "A-Teli Maj9", tab: [aFret+2, aFret+1, aFret+1, aFret+2, aFret, "x"] });
-        positions.push({ sys: "Drop-2", name: "Üst 4 Tel Maj9", tab: [dFret+2, aFret ? sf(aFret+1): 1, dFret+2, dFret, "x", "x"] });
+        rawPositions.push({ sys: "Jazz Voicing", name: "A-Teli Maj9", tab: ["x", aFret, aFret+2, aFret+1, aFret+1, aFret+2] });
+        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Maj9", tab: ["x", "x", dFret, dFret+2, dFret+2, dFret+2] });
     } else if (type === "m9") {
-        positions.push({ sys: "Jazz Voicing", name: "A-Teli Minör 9", tab: [aFret+2, aFret, aFret, aFret+2, aFret, "x"] });
-        positions.push({ sys: "Drop-2", name: "Üst 4 Tel Min9", tab: [dFret+1, dFret, dFret+1, dFret, "x", "x"] });
+        rawPositions.push({ sys: "Jazz Voicing", name: "A-Teli Minör 9", tab: ["x", aFret, aFret+2, aFret, aFret, aFret+2] });
+        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Min9", tab: ["x", "x", dFret, dFret+1, dFret, dFret+1] });
     } else if (type === "11") {
-        positions.push({ sys: "Modern Voicing", name: "Kompakt Dom 11", tab: [aFret+1, aFret+1, aFret+3, aFret+2, aFret, "x"] });
+        rawPositions.push({ sys: "Modern Voicing", name: "Kompakt Dom 11", tab: ["x", aFret, aFret+2, aFret+3, aFret+1, aFret+1] });
     } else if (type === "m11") {
-        positions.push({ sys: "Modern Voicing", name: "Kompakt Minör 11", tab: [aFret+1, aFret+1, aFret+1, aFret+2, aFret, "x"] });
+        rawPositions.push({ sys: "Modern Voicing", name: "Kompakt Minör 11", tab: ["x", aFret, aFret+2, aFret+1, aFret+1, aFret+1] });
     } else if (type === "13") {
-        positions.push({ sys: "Jazz Voicing", name: "Kompakt Dom 13", tab: [aFret+2, aFret+4, aFret+3, aFret+2, aFret, "x"] });
+        rawPositions.push({ sys: "Jazz Voicing", name: "Kompakt Dom 13", tab: ["x", aFret, aFret+2, aFret+3, aFret+4, aFret+2] });
     }
 
-    return positions.map(p => ({
-        sys: p.sys,
-        name: p.name,
-        tab: p.tab.map(v => (typeof v === 'number' && (v < 0 || v > 15)) ? "x" : v.toString())
-    }));
+    // SPAN GUARD (Perde Sınırlandırıcı Süzgeci): 
+    // Bir akor pozisyonundaki en düşük basılan perde ile en yüksek basılan perde arasındaki fark 4'ten büyükse,
+    // o pozisyonu elin basamayacağı kadar geniş olduğu için eler veya güvenli aralığa taşır.
+    let validPositions = [];
+
+    rawPositions.forEach(p => {
+        let frets = p.tab.filter(v => v !== "x").map(Number);
+        if (frets.length === 0) return;
+
+        let minFret = Math.min(...frets);
+        let maxFret = Math.max(...frets);
+        let span = maxFret - minFret;
+
+        // Eğer perde aralığı 4'ten büyükse (örneğin 0 ile 11 gibi), elin basması imkansızdır. Atla.
+        if (span <= 4 && maxFret <= 15) {
+            validPositions.push({
+                sys: p.sys,
+                name: p.name,
+                tab: p.tab.map(v => (v === "x" ? "x" : v.toString()))
+            });
+        }
+    });
+
+    // Eğer filtre sonucunda o akor için boş kalırsa, en azından güvenli bir temel pozisyon sunalım
+    if (validPositions.length === 0) {
+        validPositions.push({
+            sys: "Standart",
+            name: "Temel Pozisyon",
+            tab: [eFret.toString(), "x", "x", "x", "x", "x"]
+        });
+    }
+
+    return validPositions;
 }
