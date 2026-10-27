@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İnteraktif Gitar Fretboard & Akor/Gam Motoru</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1>Gitar Teori & Fretboard Motoru</h1>
+        <div class="subtitle">Notalar, Gamlar ve Akor Alternatifleri Tek Noktada</div>
+
+        <div class="options-container">
+            <button class="options-btn" id="options-toggle-btn">⚙️ Seçenekler</button>
+            <div class="options-dropdown" id="options-dropdown">
+                <label for="sound-engine-select">Enstrüman Sesi:</label>
+                <select id="sound-engine-select">
+                    <option value="guitar">Gitar (Pluck)</option>
+                    <option value="piano">Piyano (Mellow)</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <div class="mode-selector">
+        <button class="mode-btn active" id="btn-mode-scales">🎶 Notalar ve Gamlar</button>
+        <button class="mode-btn" id="btn-mode-chords">🎸 Akorlar ve Alternatifleri</button>
+    </div>
+
+    <div class="main-container">
+        <!-- Gam Kontrol Paneli -->
+        <div class="control-panel" id="panel-scales">
+            <div class="control-group" id="root-selector">
+                <span>Root Note:</span>
+            </div>
+            <div class="control-group" id="tier-start">
+                <span>🟢 Start:</span>
+            </div>
+            <div class="control-group" id="tier-understand">
+                <span>🟡 Understand:</span>
+            </div>
+            <div class="control-group" id="tier-advance">
+                <span>🔴 Advance:</span>
+            </div>
+        </div>
+
+        <!-- Akor Kontrol Paneli -->
+        <div class="control-panel hidden" id="panel-chords-ctrl">
+            <div>
+                <div class="section-label">1. Kök Ses (Root Note)</div>
+                <div class="root-selector" id="chord-root-buttons" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+            </div>
+            <div>
+                <div class="section-label">2. Akor Tipi (Chord Type)</div>
+                <div class="type-selector" id="chord-type-buttons" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Akor Eylem Çubuğu -->
+    <div class="chord-action-bar hidden" id="chord-action-bar">
+        <button class="position-btn" id="position-cycle-btn">
+            <span id="pos-btn-text">🔄 Alternatif Pozisyon: (1 / 1)</span>
+            <span style="font-size: 0.75rem; color: var(--alt-color);">Değiştirmek için tıkla</span>
+        </button>
+        
+        <div class="playback-controls">
+            <div class="speed-control">
+                <span>Hız: <strong id="speed-val" style="color:#00adb5;">1.0x</strong></span>
+                <input type="range" id="speed-slider" min="0.5" max="2.0" step="0.1" value="1.0">
+            </div>
+            <button class="play-btn" id="play-chord-btn">🎵 Dinle</button>
+        </div>
+    </div>
+
+    <!-- Fretboard Alanı -->
+    <div class="fretboard-container">
+        <div class="fretboard-title">
+            <span>İnteraktif Fretboard (Tel Bükme & Gösterim)</span>
+            <span style="font-size: 0.75rem; color: #888;">Teli bükmek için tıklayıp sürükleyin</span>
+        </div>
+        <div class="fretboard" id="fretboard"></div>
+    </div>
+
+    <!-- Gam Teori Paneli -->
+    <div class="bottom-theory-container" id="bottom-scale-theory-panel">
+        <div class="bottom-theory-header">
+            <span id="bottom-scale-title">Gam Analizi</span>
+            <span style="font-size: 0.75rem; color: #00adb5;">Teori & Yapı</span>
+        </div>
+        <div id="scale-theory-display" class="theory-content">Yükleniyor...</div>
+    </div>
+
+    <!-- Akor Teori Paneli -->
+    <div class="bottom-theory-container hidden" id="bottom-theory-panel">
+        <div class="bottom-theory-header">
+            <span id="bottom-chord-title">Akor Analizi</span>
+            <span style="font-size: 0.75rem; color: #00adb5;">Teori & Yapı</span>
+        </div>
+        <div id="theory-display" class="theory-content">Yükleniyor...</div>
+    </div>
+
+    <!-- Modüler Main Script -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
