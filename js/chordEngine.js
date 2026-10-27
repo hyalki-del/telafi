@@ -55,64 +55,64 @@ export function getAllChordPositions(root, type) {
         rawPositions.push({ sys: "CAGED", name: "E-Formu Barre", tab: [eFret, eFret, eFret+1, eFret+2, eFret+2, eFret] });
         rawPositions.push({ sys: "CAGED", name: "A-Formu Barre", tab: [aFret, aFret+2, aFret+2, aFret+2, aFret, "x"] });
         rawPositions.push({ sys: "Triad", name: "Üst 3 Tel Triad", tab: ["x", "x", "x", dFret, dFret+2, sf(dFret+4)] });
-        rawPositions.push({ sys: "Drop-2", name: "D-Teli Drop-2", tab: ["x", "x", dFret, dFret+3, dFret+2, dFret] });
+        rawPositions.push({ sys: "Drop-2", name: "D-Teli Drop-2", tab: ["x", "x", dFret, sf(dFret+4), dFret+2, dFret] });
     } else if (type === "m") {
         rawPositions.push({ sys: "CAGED", name: "E-Formu Minör", tab: [eFret, eFret, eFret, eFret+2, eFret+2, eFret] });
         rawPositions.push({ sys: "CAGED", name: "A-Formu Minör", tab: [aFret, aFret+1, aFret+2, aFret+2, aFret, "x"] });
         rawPositions.push({ sys: "Triad", name: "Üst 3 Tel Minör Triad", tab: ["x", "x", "x", dFret, dFret+2, sf(dFret+3)] });
-        rawPositions.push({ sys: "Drop-2", name: "D-Teli Minör Drop-2", tab: ["x", "x", dFret, dFret+3, dFret+2, dFret+1] });
+        rawPositions.push({ sys: "Drop-2", name: "D-Teli Minör Drop-2", tab: ["x", "x", dFret, sf(dFret+3), dFret+2, dFret] });
     } else if (type === "7") {
-        rawPositions.push({ sys: "CAGED", name: "E-Formu Dom7", tab: [eFret, eFret+2, eFret+1, eFret, eFret+2, eFret] });
+        rawPositions.push({ sys: "CAGED", name: "E-Formu Dom7", tab: [eFret, eFret, eFret+1, eFret, eFret+2, eFret] });
         rawPositions.push({ sys: "CAGED", name: "A-Formu Dom7", tab: [aFret, aFret+2, aFret, aFret+2, aFret, "x"] });
         rawPositions.push({ sys: "Shell", name: "3-Ses Caz Voicing", tab: [eFret, "x", eFret+1, eFret, "x", "x"] });
-        rawPositions.push({ sys: "Drop-2", name: "D-Teli Dom7", tab: ["x", "x", dFret, dFret+3, dFret+2, dFret+3] });
+        rawPositions.push({ sys: "Drop-2", name: "D-Teli Dom7", tab: ["x", "x", dFret, sf(dFret+4), sf(dFret+3), dFret+2] });
     } else if (type === "maj7") {
-        rawPositions.push({ sys: "CAGED", name: "E-Formu Maj7", tab: [eFret, eFret+1, eFret+1, eFret, "x", eFret] });
-        rawPositions.push({ sys: "CAGED", name: "A-Formu Maj7", tab: [aFret, aFret+2, aFret+1, aFret+2, aFret, "x"] });
-        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Maj7", tab: ["x", "x", dFret, dFret+2, dFret+2, dFret+2] });
+        rawPositions.push({ sys: "CAGED", name: "E-Formu Maj7", tab: [eFret, sf(eFret+4), sf(eFret+4), eFret, "x", eFret] });
+        rawPositions.push({ sys: "CAGED", name: "A-Formu Maj7", tab: [aFret, aFret+2, sf(aFret+1), aFret+2, aFret, "x"] });
+        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Maj7", tab: ["x", "x", dFret, sf(dFret+4), sf(dFret+4), sf(dFret+4)] });
     } else if (type === "m7") {
         rawPositions.push({ sys: "CAGED", name: "E-Formu Min7", tab: [eFret, eFret+2, eFret, eFret, eFret, eFret] });
         rawPositions.push({ sys: "CAGED", name: "A-Formu Min7", tab: [aFret, aFret+2, aFret, aFret+1, aFret, "x"] });
-        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Min7", tab: ["x", "x", dFret, dFret+1, dFret+1, dFret+1] });
+        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Min7", tab: ["x", "x", dFret, sf(dFret+3), sf(dFret+3), sf(dFret+3)] });
     } else if (type === "m7b5") {
-        rawPositions.push({ sys: "Jazz Voicing", name: "A-Teli Yarım Eksilmiş", tab: ["x", "x", aFret, aFret+1, aFret+1, aFret+1] });
-        rawPositions.push({ sys: "Jazz Voicing", name: "E-Teli Yarım Eksilmiş", tab: ["x", "x", eFret+1, eFret+2, eFret, eFret+1] });
+        rawPositions.push({ sys: "Jazz Voicing", name: "A-Teli Yarım Eksilmiş", tab: ["x", "x", aFret, sf(aFret+3), sf(aFret+3), sf(aFret+3)] });
+        rawPositions.push({ sys: "Jazz Voicing", name: "E-Teli Yarım Eksilmiş", tab: ["x", "x", sf(eFret+1), eFret+2, eFret, sf(eFret+1)] });
     } else if (type === "sus2") {
         rawPositions.push({ sys: "Standart", name: "E-Teli Sus2", tab: [eFret, "x", eFret+2, eFret+2, eFret, eFret+2] });
-        rawPositions.push({ sys: "Standart", name: "A-Teli Sus2", tab: ["x", aFret, aFret+2, aFret+2, aFret, aFret] });
+        rawPositions.push({ sys: "Standart", name: "A-Teli Sus2", tab: ["x", aFret, aFret+2, aFret+2, aFret, "x"] });
     } else if (type === "sus4") {
         rawPositions.push({ sys: "Standart", name: "E-Teli Sus4", tab: [eFret, eFret+2, eFret+2, eFret, eFret, eFret] });
-        rawPositions.push({ sys: "Standart", name: "A-Teli Sus4", tab: ["x", aFret, aFret+2, aFret+2, aFret+3, aFret] });
+        rawPositions.push({ sys: "Standart", name: "A-Teli Sus4", tab: ["x", aFret, aFret+2, aFret+2, sf(aFret+3), aFret] });
     } else if (type === "dim") {
-        rawPositions.push({ sys: "Diminished", name: "A-Teli Kök Dim7", tab: ["x", "x", aFret+1, aFret+2, aFret+1, aFret+3] });
-        rawPositions.push({ sys: "Diminished", name: "E-Teli Kök Dim7", tab: ["x", "x", eFret+1, eFret+2, eFret+2, eFret+3] });
+        rawPositions.push({ sys: "Diminished", name: "A-Teli Kök Dim7", tab: ["x", "x", sf(aFret+1), aFret+2, sf(aFret+1), sf(aFret+3)] });
+        rawPositions.push({ sys: "Diminished", name: "E-Teli Kök Dim7", tab: ["x", "x", sf(eFret+1), eFret+2, eFret+2, sf(eFret+3)] });
     } else if (type === "aug") {
-        rawPositions.push({ sys: "Augmented", name: "A-Teli Aug", tab: ["x", "x", aFret+2, aFret+2, aFret+3, aFret+1] });
-        rawPositions.push({ sys: "Augmented", name: "E-Teli Aug", tab: [eFret, eFret+1, eFret+1, eFret+2, "x", eFret] });
+        rawPositions.push({ sys: "Augmented", name: "A-Teli Aug", tab: ["x", "x", aFret+2, aFret+2, sf(aFret+4), aFret] });
+        rawPositions.push({ sys: "Augmented", name: "E-Teli Aug", tab: [eFret, sf(eFret+1), sf(eFret+1), eFret+2, "x", eFret] });
     } else if (type === "6") {
         rawPositions.push({ sys: "Jazz Voicing", name: "A-Teli Majör 6", tab: ["x", aFret, aFret+2, aFret+2, aFret, aFret+2] });
-        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Majör 6", tab: ["x", "x", dFret, dFret+2, dFret+2, dFret+2] });
+        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Majör 6", tab: ["x", "x", dFret, sf(dFret+4), sf(dFret+4), sf(dFret+4)] });
     } else if (type === "m6") {
-        rawPositions.push({ sys: "Jazz Voicing", name: "A-Teli Minör 6", tab: ["x", aFret, aFret+2, aFret+2, aFret, aFret+1] });
-        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Minör 6", tab: ["x", "x", dFret, dFret+2, dFret+2, dFret+1] });
+        rawPositions.push({ sys: "Jazz Voicing", name: "A-Teli Minör 6", tab: ["x", aFret, aFret+2, aFret+2, aFret, sf(aFret+2)] });
+        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Minör 6", tab: ["x", "x", dFret, sf(dFret+3), sf(dFret+3), sf(dFret+3)] });
     } else if (type === "9") {
-        rawPositions.push({ sys: "Jazz Voicing", name: "A-Teli Dom 9", tab: ["x", aFret, aFret+2, aFret+3, aFret+2, aFret+2] });
-        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Dom 9", tab: ["x", "x", dFret, dFret+3, dFret+2, dFret+2] });
+        rawPositions.push({ sys: "Jazz Voicing", name: "A-Teli Dom 9", tab: ["x", aFret, aFret+2, sf(aFret+3), aFret+2, aFret+2] });
+        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Dom 9", tab: ["x", "x", dFret, sf(aFret+3), aFret+2, aFret+2] });
     } else if (type === "maj9") {
-        rawPositions.push({ sys: "Jazz Voicing", name: "A-Teli Maj9", tab: ["x", aFret, aFret+2, aFret+1, aFret+1, aFret+2] });
-        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Maj9", tab: ["x", "x", dFret, dFret+2, dFret+2, dFret+2] });
+        rawPositions.push({ sys: "Jazz Voicing", name: "A-Teli Maj9", tab: ["x", aFret, aFret+2, sf(aFret+1), sf(aFret+1), aFret+2] });
+        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Maj9", tab: ["x", "x", dFret, sf(dFret+4), sf(dFret+4), sf(dFret+4)] });
     } else if (type === "m9") {
         rawPositions.push({ sys: "Jazz Voicing", name: "A-Teli Minör 9", tab: ["x", aFret, aFret+2, aFret, aFret, sf(aFret+3)] });
-        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Min9", tab: ["x", "x", dFret, dFret+1, dFret, dFret+1] });
+        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Min9", tab: ["x", "x", dFret, sf(dFret+1), dFret, sf(dFret+1)] });
     } else if (type === "11") {
-        rawPositions.push({ sys: "Modern Voicing", name: "Kompakt Dom 11", tab: ["x", aFret, "x", aFret+3, aFret+3, aFret+3] });
-        rawPositions.push({ sys: "Jazz Voicing", name: "Geniş Dom 11", tab: [eFret, "x", eFret+1, eFret+1, eFret+1, "x"] });
+        rawPositions.push({ sys: "Modern Voicing", name: "Kompakt Dom 11", tab: ["x", aFret, "x", sf(aFret+3), sf(aFret+3), sf(aFret+3)] });
+        rawPositions.push({ sys: "Jazz Voicing", name: "Geniş Dom 11", tab: [eFret, "x", sf(eFret+1), sf(eFret+1), sf(eFret+1), "x"] });
     } else if (type === "m11") {
-        rawPositions.push({ sys: "Modern Voicing", name: "Kompakt Minör 11", tab: ["x", aFret, "x", aFret+1, aFret+3, aFret+3] });
-        rawPositions.push({ sys: "Drop-2", name: "D-Teli Min11", tab: ["x", "x", dFret, dFret+1, dFret+3, dFret+3] });
+        rawPositions.push({ sys: "Modern Voicing", name: "Kompakt Minör 11", tab: ["x", aFret, "x", aFret, aFret, aFret] });
+        rawPositions.push({ sys: "Drop-2", name: "D-Teli Min11", tab: ["x", "x", dFret, sf(dFret+1), sf(dFret+3), sf(dFret+3)] });
     } else if (type === "13") {
-        rawPositions.push({ sys: "Jazz Voicing", name: "Kompakt Dom 13", tab: ["x", aFret, "x", aFret+3, aFret+4, aFret+2] });
-        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Dom 13", tab: ["x", "x", dFret, dFret+3, dFret+4, dFret+2] });
+        rawPositions.push({ sys: "Jazz Voicing", name: "Kompakt Dom 13", tab: ["x", aFret, "x", sf(aFret+3), sf(aFret+4), aFret+2] });
+        rawPositions.push({ sys: "Drop-2", name: "Üst 4 Tel Dom 13", tab: ["x", "x", dFret, sf(dFret+3), sf(dFret+4), aFret+2] });
     }
 
     // SPAN GUARD ve Doğruluk Süzgeci:
