@@ -1,18 +1,15 @@
 import { setSoundEngine, playTone } from './audioEngine.js';
 import { buildFretboard, noteNames, stringTunings } from './fretboard.js';
 import { scaleTiers } from './scaleEngine.js';
-import { chordTypes, chordFormulas, getAllChordPositions } from './chordEngine.js';
+import { ChordEngine } from './chordEngine.js';
 
 let currentMode = 'scales';
 let currentRoot = 'A';
 let currentScale = 'Minor Pentatonic';
-let currentChordType = 'maj';
-let currentPositionIndex = 0;
+let chordEngineInstance = null;
 
-// UI Menüleri ve Dinleyiciler
 document.addEventListener('DOMContentLoaded', () => {
-    
-    // Seçenekler Menüsü Toggle
+    // 1. Seçenekler Menüsü Toggle
     const optionsBtn = document.getElementById('options-toggle-btn');
     const optionsDropdown = document.getElementById('options-dropdown');
     
@@ -42,59 +39,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Mod Değiştirme Butonları
+    // 2. Mod Değiştirme Butonları
     const btnScales = document.getElementById('btn-mode-scales');
     const btnChords = document.getElementById('btn-mode-chords');
 
     if (btnScales) btnScales.addEventListener('click', () => switchMode('scales'));
     if (btnChords) btnChords.addEventListener('click', () => switchMode('chords'));
 
-    // Pozisyon Değiştirme ve Dinle Butonları
-    const posCycleBtn = document.getElementById('position-cycle-btn');
-    if (posCycleBtn) {
-        posCycleBtn.addEventListener('click', () => {
-            const positions = getAllChordPositions(currentRoot, currentChordType);
-            currentPositionIndex = (currentPositionIndex + 1) % positions.length;
-            updateChordView();
-        });
+    // 3. Başlangıç Kurulumu
+    buildScaleControls();
+    buildFretboard();
+
+    // Akor Motorunu Konteyner Üzerinde Başlatıyoruz
+    const chordPanelContainer = document.getElementById('panel-chords-ctrl');
+    if (chordPanelContainer) {
+        chordEngineInstance = new ChordEngine(chordPanelContainer);
     }
 
-    const playChordBtn = document.getElementById('play-chord-btn');
-    if (playChordBtn) {
-        playChordBtn.addEventListener('click', () => {
-            const positions = getAllChordPositions(currentRoot, currentChordType);
-            if (!positions || positions.length === 0) return;
-            const currentPos = positions[currentPositionIndex];
-            
-            let activeFreqs = [];
-            currentPos.tab.forEach((tabVal, stringIdx) => {
-                if (tabVal !== "x") {
-                    const fretIdx = parseInt(tabVal);
-                    const stringInfo = stringTunings[stringIdx];
-                    const freq = stringInfo.freq * Math.pow(2, fretIdx / 12);
-                    activeFreqs.push({ freq, stringIdx });
-                }
-            });
+    // Global tetikleyici (Akor motoru içi değişikliklerde UI güncellenmesi için)
+    window.appUpdateView = () => {
+        if (chordEngineInstance) {
+            currentRoot = chordEngineInstance.currentRoot;
+        }
+        updateFretboardDisplay();
+        if (currentMode === 'chords' && chordEngineInstance) {
+            chordEngineInstance.updateChordView();
+        }
+    };
 
-            // Kalından tize doğru arpej sıralaması
-            activeFreqs.sort((a, b) => b.stringIdx - a.stringIdx);
-
-            const speedSliderEl = document.getElementById('speed-slider');
-            const speedMultiplier = speedSliderEl ? parseFloat(speedSliderEl.value) : 1.0;
-            const delayStep = 0.115 / speedMultiplier; 
-
-            activeFreqs.forEach((item, idx) => {
-                playTone(item.freq, idx * delayStep, 2.0);
-            });
-        });
-    }
-
-    // Tarayıcının ilk boyamayı (First Paint) yapmasına izin verip ana thread'i rahatlatıyoruz
-    requestAnimationFrame(() => {
-        buildControls();
-        buildFretboard();
-        switchMode('scales');
-    });
+    switchMode('scales');
 });
 
 function switchMode(mode) {
@@ -119,7 +92,7 @@ function switchMode(mode) {
 
     updateFretboardDisplay();
     if (mode === 'scales') updateScaleView();
-    if (mode === 'chords') updateChordView();
+    if (mode === 'chords' && chordEngineInstance) chordEngineInstance.updateChordView();
 }
 
 function updateScaleView() {
@@ -153,45 +126,11 @@ function updateScaleView() {
     }
 }
 
-function updateChordView() {
-    const rootIndex = noteNames.indexOf(currentRoot);
-    const formula = chordFormulas[currentChordType];
-    const chordName = `${currentRoot} ${chordTypes.find(t => t.id === currentChordType).name}`;
-    
-    const notes = formula.intervals.map(i => noteNames[(rootIndex + i) % 12]);
-    const positions = getAllChordPositions(currentRoot, currentChordType);
-    
-    if (currentPositionIndex >= positions.length) currentPositionIndex = 0;
-    const currentPos = positions[currentPositionIndex];
-
-    const posBtnText = document.getElementById("pos-btn-text");
-    if (posBtnText) {
-        posBtnText.innerHTML = `🔄 Alternatif Pozisyon: <b style="color:#ffffff;">${currentPos.sys} (${currentPos.name})</b> <span style="color:var(--alt-color);">(${currentPositionIndex + 1} / ${positions.length})</span>`;
-    }
-    
-    const chordTitle = document.getElementById("bottom-chord-title");
-    if (chordTitle) chordTitle.innerText = chordName;
-
-    const notesHTML = notes.map(n => `<span class="note-badge">${n}</span>`).join('');
-    const theoryDisplay = document.getElementById("theory-display");
-    if (theoryDisplay) {
-        theoryDisplay.innerHTML = `
-            <div style="margin-bottom:8px;"><b>Akor Notaları:</b> ${notesHTML}</div>
-            <div style="margin-bottom:8px;"><b>Aralık Formülü:</b> <span style="color:#ffb400; font-weight:bold;">${formula.name}</span></div>
-            <div style="margin-bottom:8px;"><b>Mevcut Alternatif (Sarı Yanan):</b> <span style="color:var(--alt-color); font-weight:bold;">${currentPos.sys} - ${currentPos.name}</span></div>
-            <div style="background:#121212; padding:10px; border-radius:6px; border-left:3px solid var(--alt-color); margin-top:6px;">${formula.theoryDesc}</div>
-        `;
-    }
-
-    updateFretboardDisplay();
-}
-
 function updateFretboardDisplay() {
     const allFrets = document.querySelectorAll('.fret');
     if (!allFrets || allFrets.length === 0) return;
 
     allFrets.forEach(f => f.classList.remove('in-scale', 'is-root', 'in-chord', 'alt-voicing'));
-
     const rootIndex = noteNames.indexOf(currentRoot);
 
     if (currentMode === 'scales') {
@@ -214,12 +153,11 @@ function updateFretboardDisplay() {
 
         updateScaleView();
 
-    } else if (currentMode === 'chords') {
-        const formula = chordFormulas[currentChordType];
-        const chordNoteIndices = formula.intervals.map(i => (rootIndex + i) % 12);
+    } else if (currentMode === 'chords' && chordEngineInstance) {
+        const chordInfo = chordEngineInstance.updateChordView();
+        if (!chordInfo) return;
 
-        const positions = getAllChordPositions(currentRoot, currentChordType);
-        const currentPos = positions[currentPositionIndex];
+        const chordNoteIndices = chordInfo.intervals.map(i => (chordInfo.rootIdx + i) % 12);
 
         allFrets.forEach(f => {
             const stringIdx = parseInt(f.dataset.string);
@@ -227,15 +165,15 @@ function updateFretboardDisplay() {
             const noteIdx = noteNames.indexOf(f.dataset.note);
 
             if (chordNoteIndices.includes(noteIdx)) {
-                if (noteIdx === rootIndex) {
+                if (noteIdx === chordInfo.rootIdx) {
                     f.classList.add('is-root');
                 } else {
                     f.classList.add('in-chord');
                 }
             }
 
-            if (currentPos) {
-                const tabVal = currentPos.tab[stringIdx];
+            if (chordInfo.currentPos) {
+                const tabVal = chordInfo.currentPos.tab[stringIdx];
                 if (tabVal !== "x" && parseInt(tabVal) === fretIdx) {
                     f.classList.add('alt-voicing');
                 }
@@ -244,7 +182,8 @@ function updateFretboardDisplay() {
     }
 }
 
-function buildControls() {
+function buildScaleControls() {
+    // Root Note (Gam) Butonları
     const rootContainer = document.getElementById('root-selector');
     if (rootContainer) {
         noteNames.forEach(note => {
@@ -255,46 +194,13 @@ function buildControls() {
                 currentRoot = note;
                 document.querySelectorAll('#root-selector .ctrl-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                syncRootButtons();
                 updateFretboardDisplay();
             };
             rootContainer.appendChild(btn);
         });
     }
 
-    const chordRootContainer = document.getElementById('chord-root-buttons');
-    if (chordRootContainer) {
-        noteNames.forEach(note => {
-            const btn = document.createElement('button');
-            btn.className = 'ctrl-btn' + (note === currentRoot ? ' active' : '');
-            btn.textContent = note;
-            btn.onclick = () => {
-                currentRoot = note;
-                currentPositionIndex = 0;
-                syncRootButtons();
-                updateChordView();
-            };
-            chordRootContainer.appendChild(btn);
-        });
-    }
-
-    const chordTypeContainer = document.getElementById('chord-type-buttons');
-    if (chordTypeContainer) {
-        chordTypes.forEach(t => {
-            const btn = document.createElement('button');
-            btn.className = 'ctrl-btn' + (t.id === currentChordType ? ' active' : '');
-            btn.textContent = t.name;
-            btn.onclick = () => {
-                currentChordType = t.id;
-                currentPositionIndex = 0;
-                document.querySelectorAll('#chord-type-buttons .ctrl-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                updateChordView();
-            };
-            chordTypeContainer.appendChild(btn);
-        });
-    }
-
+    // Gam Seviyeleri (Start, Understand, Advance)
     const populateTier = (containerId, tierObj, includeClear = false) => {
         const container = document.getElementById(containerId);
         if (!container) return;
@@ -335,13 +241,4 @@ function buildControls() {
     populateTier('tier-start', scaleTiers['Start'], true);
     populateTier('tier-understand', scaleTiers['Understand'], false);
     populateTier('tier-advance', scaleTiers['Advance'], false);
-}
-
-function syncRootButtons() {
-    document.querySelectorAll('#root-selector .ctrl-btn').forEach(b => {
-        b.classList.toggle('active', b.textContent === currentRoot);
-    });
-    document.querySelectorAll('#chord-root-buttons .ctrl-btn').forEach(b => {
-        b.classList.toggle('active', b.textContent === currentRoot);
-    });
 }
