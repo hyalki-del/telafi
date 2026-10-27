@@ -83,17 +83,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const speedMultiplier = speedSliderEl ? parseFloat(speedSliderEl.value) : 1.0;
             const delayStep = 0.115 / speedMultiplier; 
 
-            // setTimeout yerine Web Audio API zaman offset yönetimi (Sesin kesilmesini önler)
             activeFreqs.forEach((item, idx) => {
                 playTone(item.freq, idx * delayStep, 2.0);
             });
         });
     }
 
-    // Başlangıç Kurulumu
-    buildControls();
-    buildFretboard();
-    switchMode('scales');
+    // Tarayıcının ilk boyamayı (First Paint) yapmasına izin verip ana thread'i rahatlatıyoruz
+    requestAnimationFrame(() => {
+        buildControls();
+        buildFretboard();
+        switchMode('scales');
+    });
 });
 
 function switchMode(mode) {
@@ -244,7 +245,6 @@ function updateFretboardDisplay() {
 }
 
 function buildControls() {
-    // Root Note (Gam) Butonları
     const rootContainer = document.getElementById('root-selector');
     if (rootContainer) {
         noteNames.forEach(note => {
@@ -262,7 +262,6 @@ function buildControls() {
         });
     }
 
-    // Kök Ses (Akor) Butonları
     const chordRootContainer = document.getElementById('chord-root-buttons');
     if (chordRootContainer) {
         noteNames.forEach(note => {
@@ -279,7 +278,6 @@ function buildControls() {
         });
     }
 
-    // Akor Tipi Butonları
     const chordTypeContainer = document.getElementById('chord-type-buttons');
     if (chordTypeContainer) {
         chordTypes.forEach(t => {
@@ -297,7 +295,6 @@ function buildControls() {
         });
     }
 
-    // Gam Seviyeleri (Start, Understand, Advance)
     const populateTier = (containerId, tierObj, includeClear = false) => {
         const container = document.getElementById(containerId);
         if (!container) return;
