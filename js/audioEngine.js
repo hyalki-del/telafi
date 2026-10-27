@@ -12,13 +12,14 @@ function initAudio() {
     if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
 }
 
 export function playTone(frequency, startTime = 0, duration = 2.0, targetGainNode = null) {
     initAudio();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
 
-    // Güncel zaman baz alınarak geçmişe planlama yapılması engellendi
     const now = audioCtx.currentTime;
     const start = now + startTime;
 
@@ -72,7 +73,6 @@ export function playTone(frequency, startTime = 0, duration = 2.0, targetGainNod
 
 export function startBendingNote(frequency, fretElement, stringPathEl, fretLeftX, clientY) {
     initAudio();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
     if (safetyTimeout) clearTimeout(safetyTimeout);
 
     initialY = clientY;
