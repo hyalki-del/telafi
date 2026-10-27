@@ -85,5 +85,5 @@ export function buildFretboard() {
     window.addEventListener('mousemove', (e) => { updateBend(e.clientY); });
     window.addEventListener('mouseup', () => { releaseBend(); });
     window.addEventListener('touchmove', (e) => { updateBend(e.touches[0].clientY); }, { passive: false });
-    window.addEventListener('touched', () => { releaseBend(); });
+    window.addEventListener('touchend', () => { releaseBend(); });
 }
