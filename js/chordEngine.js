@@ -8,7 +8,15 @@ export const chordTypes = [
     { id: "dim", name: "Diminished" },
     { id: "aug", name: "Augmented" },
     { id: "sus2", name: "Sus2" },
-    { id: "sus4", name: "Sus4" }
+    { id: "sus4", name: "Sus4" },
+    { id: "6", name: "Majör 6" },
+    { id: "m6", name: "Minör 6" },
+    { id: "9", name: "Dom 9" },
+    { id: "maj9", name: "Maj9" },
+    { id: "m9", name: "Minör 9" },
+    { id: "11", name: "Dom 11" },
+    { id: "m11", name: "Minör 11" },
+    { id: "13", name: "Dom 13" }
 ];
 
 export const chordFormulas = {
@@ -17,11 +25,19 @@ export const chordFormulas = {
     "7": { intervals: [0, 4, 7, 10], name: "1 - 3 - 5 - b7", theoryDesc: "<b>Dominant 7'li Akor:</b> Çözülme isteği uyandıran gerilimli bir yapıya sahiptir." },
     "maj7": { intervals: [0, 4, 7, 11], name: "1 - 3 - 5 - 7", theoryDesc: "<b>Majör 7'li Akor:</b> Caz tarzı atmosferik ve yumuşak renge sahiptir." },
     "m7": { intervals: [0, 3, 7, 10], name: "1 - b3 - 5 - b7", theoryDesc: "<b>Minör 7'li Akor:</b> Dingin ve olgun minör renk sunar." },
-    "m7b5": { intervals: [0, 3, 6, 10], name: "1 - b3 - b5 - b7", theoryDesc: "<b>Minör 7 bemol 5 (Yarım Eksilmiş):</b> Minör üçlü, eksik beşli (b5) ve minör yedili içerir. Caz müzikte minor 2-5-1 yürüyüşlerinin temelidir." },
-    "dim": { intervals: [0, 3, 6, 9], name: "1 - b3 - b5 - bb7", theoryDesc: "<b>Diminished 7'li Akor:</b> Üst üste binmiş üç minör üçlü aralığından oluşan simetrik ve yüksek gerilimli bir akordur." },
+    "m7b5": { intervals: [0, 3, 6, 10], name: "1 - b3 - b5 - b7", theoryDesc: "<b>Minör 7 bemol 5 (Yarım Eksilmiş):</b> Caz müzikte minor 2-5-1 yürüyüşlerinin temelidir." },
+    "dim": { intervals: [0, 3, 6, 9], name: "1 - b3 - b5 - bb7", theoryDesc: "<b>Diminished 7'li Akor:</b> Üst üste binmiş minör üçlülerden oluşan simetrik ve yüksek gerilimli bir akordur." },
     "aug": { intervals: [0, 4, 8], name: "1 - 3 - #5", theoryDesc: "<b>Artık Akor:</b> 5'li sesin tizleşmesiyle genişleyen sürprizli bir etki bırakır." },
     "sus2": { intervals: [0, 2, 7], name: "1 - 2 - 5", theoryDesc: "<b>Sus2:</b> 3'lü ses yerine 2'li ses içerir, açık ve akıcıdır." },
-    "sus4": { intervals: [0, 5, 7], name: "1 - 4 - 5", theoryDesc: "<b>Sus4:</b> 3'lü ses yerine 4'lü ses içerir, ana akora çözülme beklentisi yaratır." }
+    "sus4": { intervals: [0, 5, 7], name: "1 - 4 - 5", theoryDesc: "<b>Sus4:</b> 3'lü ses yerine 4'lü ses içerir, ana akora çözülme beklentisi yaratır." },
+    "6": { intervals: [0, 4, 7, 9], name: "1 - 3 - 5 - 6", theoryDesc: "<b>Majör 6'lı Akor:</b> Majör üçlüye eklenen 6'lı derece ile nostaljik, tatlı ve sıcak bir caz/pop tınısı yaratır." },
+    "m6": { intervals: [0, 3, 7, 9], name: "1 - b3 - 5 - 6", theoryDesc: "<b>Minör 6'lı Akor:</b> Gizemli, sinematik ve özellikle caz baladlarında sıkça duyulan hüzünlü ama zengin bir renktir." },
+    "9": { intervals: [0, 4, 7, 10, 2], name: "1 - 3 - 5 - b7 - 9", theoryDesc: "<b>Dominant 9'lu Akor:</b> Blues, funk ve caz müzikte dominant 7'liye renk katan 9'lu eklenmiş versiyonudur." },
+    "maj9": { intervals: [0, 4, 7, 11, 2], name: "1 - 3 - 5 - 7 - 9", theoryDesc: "<b>Majör 9'lu Akor:</b> Caz ve R&B tarzının vazgeçilmezi olan son derece zengin ve ferah bir tını sunar." },
+    "m9": { intervals: [0, 3, 7, 10, 2], name: "1 - b3 - 5 - b7 - 9", theoryDesc: "<b>Minör 9'lu Akor:</b> Modern caz ve neo-soul armonilerinin kalbinde yer alan yumuşak bir minör renktir." },
+    "11": { intervals: [0, 4, 7, 10, 2, 5], name: "1 - 3 - 5 - b7 - 9 - 11", theoryDesc: "<b>Dominant 11'li Akor:</b> Askıda kalmış, geniş ve füzyon tarzı bir tını yaratır." },
+    "m11": { intervals: [0, 3, 7, 10, 2, 5], name: "1 - b3 - 5 - b7 - 9 - 11", theoryDesc: "<b>Minör 11'li Akor:</b> Modal cazda kullanılan, çok katmanlı ve atmosferik minör yapıdır." },
+    "13": { intervals: [0, 4, 7, 10, 2, 9], name: "1 - 3 - 5 - b7 - 9 - 13", theoryDesc: "<b>Dominant 13'lü Akor:</b> Kompleks caz armonilerinin zirvelerinden biri olup parlak bir üst çatı sunar." }
 };
 
 const noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -74,6 +90,27 @@ export function getAllChordPositions(root, type) {
     } else if (type === "aug") {
         positions.push({ sys: "Augmented", name: "A-Teli Aug", tab: [aFret+1, aFret+2, aFret+2, aFret+3, "x", "x"] });
         positions.push({ sys: "Augmented", name: "E-Teli Aug", tab: [eFret, eFret+1, eFret+1, eFret+2, "x", eFret] });
+    } else if (type === "6") {
+        positions.push({ sys: "Jazz Voicing", name: "A-Teli Majör 6", tab: [aFret+2, aFret, aFret+2, aFret+2, aFret, "x"] });
+        positions.push({ sys: "Drop-2", name: "Üst 4 Tel Majör 6", tab: [dFret+2, dFret+2, dFret+2, dFret, "x", "x"] });
+    } else if (type === "m6") {
+        positions.push({ sys: "Jazz Voicing", name: "A-Teli Minör 6", tab: [aFret+1, aFret, aFret+2, aFret+2, aFret, "x"] });
+        positions.push({ sys: "Drop-2", name: "Üst 4 Tel Minör 6", tab: [dFret+1, dFret+2, dFret+2, dFret, "x", "x"] });
+    } else if (type === "9") {
+        positions.push({ sys: "Jazz Voicing", name: "A-Teli Dom 9", tab: [aFret+2, aFret+2, aFret+3, aFret+2, aFret, "x"] });
+        positions.push({ sys: "Drop-2", name: "Üst 4 Tel Dom 9", tab: [dFret+2, dFret+2, dFret+3, dFret, "x", "x"] });
+    } else if (type === "maj9") {
+        positions.push({ sys: "Jazz Voicing", name: "A-Teli Maj9", tab: [aFret+2, aFret+1, aFret+1, aFret+2, aFret, "x"] });
+        positions.push({ sys: "Drop-2", name: "Üst 4 Tel Maj9", tab: [dFret+2, aFret ? sf(aFret+1): 1, dFret+2, dFret, "x", "x"] });
+    } else if (type === "m9") {
+        positions.push({ sys: "Jazz Voicing", name: "A-Teli Minör 9", tab: [aFret+2, aFret, aFret, aFret+2, aFret, "x"] });
+        positions.push({ sys: "Drop-2", name: "Üst 4 Tel Min9", tab: [dFret+1, dFret, dFret+1, dFret, "x", "x"] });
+    } else if (type === "11") {
+        positions.push({ sys: "Modern Voicing", name: "Kompakt Dom 11", tab: [aFret+1, aFret+1, aFret+3, aFret+2, aFret, "x"] });
+    } else if (type === "m11") {
+        positions.push({ sys: "Modern Voicing", name: "Kompakt Minör 11", tab: [aFret+1, aFret+1, aFret+1, aFret+2, aFret, "x"] });
+    } else if (type === "13") {
+        positions.push({ sys: "Jazz Voicing", name: "Kompakt Dom 13", tab: [aFret+2, aFret+4, aFret+3, aFret+2, aFret, "x"] });
     }
 
     return positions.map(p => ({
