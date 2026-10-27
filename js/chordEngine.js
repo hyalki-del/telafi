@@ -31,43 +31,46 @@ export function getAllChordPositions(root, type) {
     const eFret = (rootIndex - noteNames.indexOf("E") + 12) % 12;
     const aFret = (rootIndex - noteNames.indexOf("A") + 12) % 12;
     const dFret = (rootIndex - noteNames.indexOf("D") + 12) % 12;
-    const gFret = (rootIndex - noteNames.indexOf("G") + 12) % 12;
 
     let positions = [];
 
+    // Yardımcı: Negatif veya 12'den büyük aşırı uçlardaki perdeleri güvenli aralığa çekmek için
+    const safeFret = (f) => (f < 0 ? f + 12 : (f > 12 ? f - 12 : f));
+
     if (type === "maj") {
-        positions.push({ sys: "CAGED", name: "A-Formu Barre", tab: [aFret, aFret+2, aFret+2, aFret+2, aFret, "x"] });
         positions.push({ sys: "CAGED", name: "E-Formu Barre", tab: [eFret, eFret, eFret+1, eFret+2, eFret+2, eFret] });
+        positions.push({ sys: "CAGED", name: "A-Formu Barre", tab: [aFret, aFret+2, aFret+2, aFret+2, aFret, "x"] });
         positions.push({ sys: "Drop-2", name: "Üst 4 Tel Grubu", tab: [dFret+2, dFret+3, dFret+2, dFret, "x", "x"] });
-        positions.push({ sys: "Triad", name: "Kök Durumu (G-B-e)", tab: [gFret <= 2 ? gFret+10 : gFret-2, gFret, gFret, "x", "x", "x"] });    } else if (type === "m") {
-        positions.push({ sys: "CAGED", name: "A-Formu Minör", tab: [aFret, aFret+1, aFret+2, aFret+2, aFret, "x"] });
+        positions.push({ sys: "Triad", name: "Kök Durumu (İnce Teller)", tab: [safeFret(dFret+4), safeFret(dFret+2), safeFret(dFret), "x", "x", "x"] });
+    } else if (type === "m") {
         positions.push({ sys: "CAGED", name: "E-Formu Minör", tab: [eFret, eFret, eFret, eFret+2, eFret+2, eFret] });
-        positions.push({ sys: "Drop-2", name: "Üst 4 Tel Grubu", tab: [dFret+1, dFret+3, dFret+2, dFret, "x", "x"] });
-        positions.push({ sys: "Triad", name: "Minör Çevrim (G-B-e)", tab: [gFret <= 1 ? gFret+11 : gFret-1, gFret <= 8 ? gFret+3 : gFret-9, gFret, "x", "x", "x"] });
+        positions.push({ sys: "CAGED", name: "A-Formu Minör", tab: [aFret, aFret+1, aFret+2, aFret+2, aFret, "x"] });
+        positions.push({ sys: "Drop-2", name: "Üst 4 Tel Minör", tab: [dFret+1, dFret+3, dFret+2, dFret, "x", "x"] });
+        positions.push({ sys: "Triad", name: "Minör Üçlü (İnce Teller)", tab: [safeFret(dFret+3), safeFret(dFret+2), safeFret(dFret), "x", "x", "x"] });
     } else if (type === "7") {
-        positions.push({ sys: "CAGED", name: "A-Formu Dom7", tab: [aFret, aFret+2, aFret, aFret+2, aFret, "x"] });
         positions.push({ sys: "CAGED", name: "E-Formu Dom7", tab: [eFret, eFret, eFret+1, eFret, eFret+2, eFret] });
+        positions.push({ sys: "CAGED", name: "A-Formu Dom7", tab: [aFret, aFret+2, aFret, aFret+2, aFret, "x"] });
         positions.push({ sys: "Drop-2", name: "D-Teli Kök Voicing", tab: [dFret+3, dFret+2, dFret+3, dFret, "x", "x"] });
         positions.push({ sys: "Shell", name: "3-Ses Caz Voicing", tab: ["x", eFret, eFret+1, "x", "x", eFret] });
     } else if (type === "maj7") {
+        positions.push({ sys: "CAGED", name: "E-Formu Maj7", tab: [eFret, safeFret(eFret-1), eFret+1, eFret+1, "x", eFret] });
         positions.push({ sys: "CAGED", name: "A-Formu Maj7", tab: [aFret, aFret+2, aFret+1, aFret+2, aFret, "x"] });
-        positions.push({ sys: "CAGED", name: "E-Formu Maj7", tab: [eFret, "x", eFret+1, eFret+1, "x", eFret] });
         positions.push({ sys: "Drop-2", name: "Üst 4 Tel Maj7", tab: [dFret+2, dFret+2, dFret+2, dFret, "x", "x"] });
     } else if (type === "m7") {
-        positions.push({ sys: "CAGED", name: "A-Formu Min7", tab: [aFret, aFret+1, aFret, aFret+2, aFret, "x"] });
         positions.push({ sys: "CAGED", name: "E-Formu Min7", tab: [eFret, eFret, eFret, eFret, eFret+2, eFret] });
+        positions.push({ sys: "CAGED", name: "A-Formu Min7", tab: [aFret, aFret+1, aFret, aFret+2, aFret, "x"] });
         positions.push({ sys: "Drop-2", name: "Üst 4 Tel Min7", tab: [dFret+1, dFret+1, dFret+1, dFret, "x", "x"] });
     } else if (type === "m7b5") {
         positions.push({ sys: "Jazz Voicing", name: "A-Teli Yarım Eksilmiş", tab: [aFret+1, aFret+1, aFret, aFret+1, "x", "x"] });
         positions.push({ sys: "Jazz Voicing", name: "E-Teli Yarım Eksilmiş", tab: [eFret+1, eFret, eFret+1, eFret+2, "x", "x"] });
         positions.push({ sys: "Drop-2", name: "Üst 4 Tel m7b5", tab: [dFret+1, dFret+2, dFret+1, dFret, "x", "x"] });
     } else if (type === "sus2") {
-        positions.push({ sys: "Standart", name: "A-Teli Sus2", tab: [aFret, aFret, aFret+2, aFret+2, aFret, "x"] });
         positions.push({ sys: "Standart", name: "E-Teli Sus2", tab: [eFret+2, eFret, eFret+2, eFret+2, "x", eFret] });
+        positions.push({ sys: "Standart", name: "A-Teli Sus2", tab: [aFret, aFret, aFret+2, aFret+2, aFret, "x"] });
         positions.push({ sys: "Triad", name: "İnce Teller Sus2", tab: [dFret, dFret+3, dFret+2, "x", "x", "x"] });
     } else if (type === "sus4") {
-        positions.push({ sys: "Standart", name: "A-Teli Sus4", tab: [aFret, aFret+3, aFret+2, aFret+2, aFret, "x"] });
         positions.push({ sys: "Standart", name: "E-Teli Sus4", tab: [eFret, eFret, eFret+2, eFret+2, eFret+2, eFret] });
+        positions.push({ sys: "Standart", name: "A-Teli Sus4", tab: [aFret, aFret+3, aFret+2, aFret+2, aFret, "x"] });
         positions.push({ sys: "Triad", name: "İnce Teller Sus4", tab: [dFret+3, dFret+3, dFret+2, "x", "x", "x"] });
     } else if (type === "dim") {
         positions.push({ sys: "Diminished", name: "A-Teli Kök Dim7", tab: [aFret+3, aFret+1, aFret+2, aFret+1, "x", "x"] });
