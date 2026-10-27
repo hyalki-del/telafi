@@ -39,8 +39,7 @@ export function getAllChordPositions(root, type) {
         positions.push({ sys: "CAGED", name: "A-Formu Barre", tab: [aFret, aFret+2, aFret+2, aFret+2, aFret, "x"] });
         positions.push({ sys: "CAGED", name: "E-Formu Barre", tab: [eFret, eFret, eFret+1, eFret+2, eFret+2, eFret] });
         positions.push({ sys: "Drop-2", name: "Üst 4 Tel Grubu", tab: [dFret+2, dFret+3, dFret+2, dFret, "x", "x"] });
-        positions.push({ sys: "Triad", name: "1. Çevrim (G-B-e)", tab: [gFret <= 2 ? gFret+10 : gFret-2, gFret, gFret, "x", "x", "x"] });
-    } else if (type === "m") {
+        positions.push({ sys: "Triad", name: "Kök Durumu (G-B-e)", tab: [gFret <= 2 ? gFret+10 : gFret-2, gFret, gFret, "x", "x", "x"] });    } else if (type === "m") {
         positions.push({ sys: "CAGED", name: "A-Formu Minör", tab: [aFret, aFret+1, aFret+2, aFret+2, aFret, "x"] });
         positions.push({ sys: "CAGED", name: "E-Formu Minör", tab: [eFret, eFret, eFret, eFret+2, eFret+2, eFret] });
         positions.push({ sys: "Drop-2", name: "Üst 4 Tel Grubu", tab: [dFret+1, dFret+3, dFret+2, dFret, "x", "x"] });
