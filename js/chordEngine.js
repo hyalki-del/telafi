@@ -6,7 +6,7 @@ export class ChordEngine {
         this.container = containerElement;
         this.options = Object.assign({
             totalFrets: 12,
-            maxSpan: 4, // Maximum fret span for a human hand (excluding open strings)
+            maxSpan: 4, // Max fret span for human hand
             defaultStaggerMs: 30
         }, options);
 
@@ -65,65 +65,55 @@ export class ChordEngine {
                 <div class="quality-selector" id="chord-quality-buttons" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
             </div>
             <div>
-                <div class="section-label" style="font-weight: bold; font-size: 0.85rem; color: #ff9800; margin-bottom: 6px; text-transform: uppercase;">3. Akor Tipi / Uzantı (Rule-Engine)</div>
+                <div class="section-label" style="font-weight: bold; font-size: 0.85rem; color: #ff9800; margin-bottom: 6px; text-transform: uppercase;">3. Akor Tipi / Uzantı (Rule Engine)</div>
                 <div class="type-selector" id="chord-type-buttons" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
             </div>
         `;
     }
 
     /**
-     * RULE-BASED VOICING GENERATOR ARCHITECTURE
-     * Computes valid guitar fingerings mathematically from music theory formulas.
+     * PURE RULE-BASED VOICING GENERATOR
+     * Scans the fretboard dynamically for any chord formula interval set.
      */
     generateVoicings(rootNote, chordType) {
         const rootIndex = noteNames.indexOf(rootNote);
         const formulaObj = this.chordFormulas[chordType] || this.chordFormulas["maj"];
+        const targetIntervals = formulaObj.intervals;
         
-        // Target pitch classes for the chord (0-11)
-        const targetPitchClasses = formulaObj.intervals.map(interval => (rootIndex + interval) % 12);
-        
-        // Open MIDI notes for standard tuning (Low E to High E: indices 5 down to 0 in stringTunings)
-        // stringTunings order in fretboard.js: [E4(0), B3(1), G3(2), D3(3), A2(4), E2(5)]
-        const openMidiNotes = [64, 59, 55, 50, 45, 40]; 
+        // Pitch classes for the chord (0-11)
+        const targetPitchClasses = targetIntervals.map(i => (rootIndex + i) % 12);
+        const openMidiNotes = [64, 59, 55, 50, 45, 40]; // High E (0) to Low E (5)
         
         let validVoicings = [];
 
-        // Helper to evaluate a candidate tab array [string5, string4, string3, string2, string1, string0]
-        // (From Low E / string index 5 to High E / string index 0)
+        // Helper to evaluate and push candidate tab array [str5, str4, str3, str2, str1, str0]
         const evaluateTab = (tab, positionName, systemName) => {
             let playedFrets = [];
             let soundingPitchClasses = new Set();
             let hasRoot = false;
-            let lowestStringWithNote = -1;
 
             for (let sIdx = 5; sIdx >= 0; sIdx--) {
                 const val = tab[sIdx];
                 if (val !== "x") {
                     const fretNum = parseInt(val);
                     playedFrets.push(fretNum);
-                    if (lowestStringWithNote === -1) lowestStringWithNote = sIdx;
-
                     const midi = openMidiNotes[sIdx] + fretNum;
                     const pc = midi % 12;
                     soundingPitchClasses.add(pc);
-
-                    if (pc === rootIndex) {
-                        hasRoot = true;
-                    }
+                    if (pc === rootIndex) hasRoot = true;
                 }
             }
 
-            // RULE 1: Must contain at least the root and essential chord tones (e.g. 3rd or 7th if present in formula)
-            if (!hasRoot) return;
-            
-            // Check if all core pitch classes from formula are reasonably represented
+            // Must have at least 3 sounding strings, contain root, and hit key chord tones
+            if (playedFrets.length < 3 || !hasRoot) return;
+
             let matchedCount = 0;
             targetPitchClasses.forEach(tp => {
                 if (soundingPitchClasses.has(tp)) matchedCount++;
             });
             if (matchedCount < Math.min(3, targetPitchClasses.length)) return;
 
-            // RULE 2: Ergonomic Fret Span Check (max fret - min fret among fretted notes <= maxSpan)
+            // Ergonomic stretch check (max fret span <= 4)
             const frettedOnly = playedFrets.filter(f => f > 0);
             if (frettedOnly.length > 0) {
                 const minF = Math.min(...frettedOnly);
@@ -131,7 +121,6 @@ export class ChordEngine {
                 if ((maxF - minF) > this.options.maxSpan) return;
             }
 
-            // Avoid duplicate identical entries
             const tabString = tab.join(',');
             if (!validVoicings.some(v => v.tab.join(',') === tabString)) {
                 validVoicings.push({
@@ -142,23 +131,46 @@ export class ChordEngine {
             }
         };
 
-        // Algorithmic scan across fretboard positions (Base fret 0 to 12)
+        // Scan fretboard base positions (0 to 12)
         for (let baseFret = 0; baseFret <= 12; baseFret++) {
-            // Test standard CAGED anchor archetypes derived dynamically:
             
-            // 1. Root on Low E String (String index 5)
+            // Archetype 1: Root on Low E String (String index 5)
             for (let f = baseFret; f <= baseFret + 4; f++) {
                 if (f > 12) continue;
                 if ((openMidiNotes[5] + f) % 12 === rootIndex) {
-                    // Build candidate based on chord formula intervals relative to root root-string
                     let candidate = ["x", "x", "x", "x", "x", "x"];
-                    candidate[5] = f.toString(); // Root on low E
-                    
-                    // Fill remaining strings using closest interval matches within the span [f, f+4]
-                    for (let s = 4; s >= 0; sims++) { // sims = s
-                        // Search frets in range [f-1, f+3] for a target chord tone
+                    candidate[5] = f.toString();
+
+                    for (let s = 4; s >= 0; s--) {
                         let found = false;
                         for (let sf = Math.max(0, f - 1); sf <= f + 3; sf++) {
+                            if (sf > 12) continue;
+                            const pc = (openMidiNotes[s] + sf) % 12;
+                            // Check if this pitch class belongs to the chord formula
+                            if (targetPitchClasses.includes(pc)) {
+                                candidate[s] = sf.toString();
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found && s < 3) candidate[s] = "x";
+                    }
+                    evaluateTab(candidate, `E-Shape @ Fret ${f}`, 'Rule-Engine');
+                }
+            }
+
+            // Archetype 2: Root on A String (String index 4)
+            for (let f = baseFret; f <= baseFret + 4; f++) {
+                if (f > 12) continue;
+                if ((openMidiNotes[4] + f) % 12 === rootIndex) {
+                    let candidate = ["x", "x", "x", "x", "x", "x"];
+                    candidate[4] = f.toString();
+                    candidate[5] = "x"; // Mute low E
+
+                    for (let s = 3; s >= 0; s--) {
+                        let found = false;
+                        for (let sf = Math.max(0, f - 1); sf <= f + 3; sf++) {
+                            if (sf > 12) continue;
                             const pc = (openMidiNotes[s] + sf) % 12;
                             if (targetPitchClasses.includes(pc)) {
                                 candidate[s] = sf.toString();
@@ -166,22 +178,24 @@ export class ChordEngine {
                                 break;
                             }
                         }
-                        if (!found && s > 2) candidate[s] = "x";
+                        if (!found && s < 2) candidate[s] = "x";
                     }
-                    evaluateTab(candidate, `Box @ Fret ${f} (E-Root)`, 'Theory-Rule');
+                    evaluateTab(candidate, `A-Shape @ Fret ${f}`, 'Rule-Engine');
                 }
             }
 
-            // 2. Root on A String (String index 4)
+            // Archetype 3: Upper Triad / D-String Root (String index 3)
             for (let f = baseFret; f <= baseFret + 4; f++) {
                 if (f > 12) continue;
-                if ((openMidiNotes[4] + f) % 12 === rootIndex) {
+                if ((openMidiNotes[3] + f) % 12 === rootIndex) {
                     let candidate = ["x", "x", "x", "x", "x", "x"];
-                    candidate[4] = f.toString(); // Root on A string
-                    candidate[5] = "x"; // Mute low E or match root octaves
+                    candidate[3] = f.toString();
+                    candidate[5] = "x";
+                    candidate[4] = "x";
 
-                    for (let s = 3; s >= 0; s--) {
+                    for (let s = 2; s >= 0; s--) {
                         for (let sf = Math.max(0, f - 1); sf <= f + 3; sf++) {
+                            if (sf > 12) continue;
                             const pc = (openMidiNotes[s] + sf) % 12;
                             if (targetPitchClasses.includes(pc)) {
                                 candidate[s] = sf.toString();
@@ -189,19 +203,18 @@ export class ChordEngine {
                             }
                         }
                     }
-                    evaluateTab(candidate, `Box @ Fret ${f} (A-Root)`, 'Theory-Rule');
+                    evaluateTab(candidate, `Triad @ Fret ${f}`, 'Rule-Engine');
                 }
             }
         }
 
-        // Fallback safety net if strict algorithmic scan yields too few positions in edge modes
+        // Guaranteed Fallback if restrictive filters miss an edge case
         if (validVoicings.length === 0) {
             const eFret = (rootIndex - (40 % 12) + 12) % 12;
-            const aFret = (rootIndex - (45 % 12) + 12) % 12;
             validVoicings.push({
-                sys: "Algorithmic Fallback",
-                name: "Basic Root Voicing",
-                tab: [eFret === 0 ? "0" : eFret.toString(), "x", "x", "x", "x", "x"]
+                sys: "Theory Fallback",
+                name: "Root Octave",
+                tab: [eFret.toString(), "x", "x", "x", "x", eFret.toString()]
             });
         }
 
@@ -233,7 +246,7 @@ export class ChordEngine {
         }
 
         const chordTitle = document.getElementById("bottom-chord-title");
-        if (chordTitle) chordTitle.innerText = `${this.currentRoot} ${this.currentChordType.toUpperCase()} (Rule-Based Generator)`;
+        if (chordTitle) chordTitle.innerText = `${this.currentRoot} ${this.currentChordType.toUpperCase()} (Rule-Based Engine)`;
 
         const theoryDisplay = document.getElementById("theory-display");
         if (theoryDisplay) {
