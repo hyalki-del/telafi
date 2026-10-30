@@ -1,5 +1,5 @@
 import { setSoundEngine, playTone } from './audioEngine.js';
-import { buildFretboard, noteNames, stringTunings } from './fretboard.js';
+import { buildFretboard, renderVoicingOnFretboard, noteNames, stringTunings } from './fretboard.js';
 import { scaleTiers } from './scaleEngine.js';
 import { ChordEngine } from './chordEngine.js';
 
@@ -130,7 +130,11 @@ function updateFretboardDisplay() {
     const allFrets = document.querySelectorAll('.fret');
     if (!allFrets || allFrets.length === 0) return;
 
-    allFrets.forEach(f => f.classList.remove('in-scale', 'is-root', 'in-chord', 'alt-voicing'));
+    // Tüm sınıfları temizle
+    allFrets.forEach(f => {
+        f.classList.remove('in-scale', 'is-root', 'in-chord', 'alt-voicing', 'active', 'root-note', 'chord-note');
+    });
+
     const rootIndex = noteNames.indexOf(currentRoot);
 
     if (currentMode === 'scales') {
@@ -154,31 +158,12 @@ function updateFretboardDisplay() {
         updateScaleView();
 
     } else if (currentMode === 'chords' && chordEngineInstance) {
+        // ChordEngine üzerinden güncel akor pozisyonunu alıyoruz
         const chordInfo = chordEngineInstance.updateChordView();
-        if (!chordInfo) return;
+        if (!chordInfo || !chordInfo.currentPos) return;
 
-        const chordNoteIndices = chordInfo.intervals.map(i => (chordInfo.rootIdx + i) % 12);
-
-        allFrets.forEach(f => {
-            const stringIdx = parseInt(f.dataset.string);
-            const fretIdx = parseInt(f.dataset.fret);
-            const noteIdx = noteNames.indexOf(f.dataset.note);
-
-            if (chordNoteIndices.includes(noteIdx)) {
-                if (noteIdx === chordInfo.rootIdx) {
-                    f.classList.add('is-root');
-                } else {
-                    f.classList.add('in-chord');
-                }
-            }
-
-            if (chordInfo.currentPos) {
-                const tabVal = chordInfo.currentPos.tab[stringIdx];
-                if (tabVal !== "x" && parseInt(tabVal) === fretIdx) {
-                    f.classList.add('alt-voicing');
-                }
-            }
-        });
+        // Fretboard.js'e eklediğimiz render fonksiyonunu tab dizisi ve kök indeks ile çağırıyoruz
+        renderVoicingOnFretboard(chordInfo.currentPos.tab, chordInfo.rootIdx);
     }
 }
 
