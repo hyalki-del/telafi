@@ -65,26 +65,17 @@ export class ChordEngine {
                 <div class="quality-selector" id="chord-quality-buttons" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
             </div>
             <div>
-                <div class="section-label" style="font-weight: bold; font-size: 0.85rem; color: #ff9800; margin-bottom: 6px; text-transform: uppercase;">3. Akor Tipi / Uzantı (Verified Theory Engine)</div>
+                <div class="section-label" style="font-weight: bold; font-size: 0.85rem; color: #ff9800; margin-bottom: 6px; text-transform: uppercase;">3. Akor Tipi / Uzantı (Validated Engine)</div>
                 <div class="type-selector" id="chord-type-buttons" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
             </div>
         `;
     }
 
-    /**
-     * VERIFIED THEORY-DRIVEN SHAPE GENERATOR
-     * Computes open cowboy chords and strictly validates intervals against formula rules.
-     */
     generateVoicings(root, type) {
         const rootIndex = noteNames.indexOf(root);
-        const formulaObj = this.chordFormulas[type] || this.chordFormulas["maj"];
-        const targetIntervals = formulaObj.intervals;
-        const targetPitchClasses = targetIntervals.map(i => (rootIndex + i) % 12);
-        
-        const openMidiNotes = [64, 59, 55, 50, 45, 40]; // High E (0) to Low E (5)
         let rawPositions = [];
 
-        // 1. EXACT OPEN COWBOY CHORDS (First 3 frets, fully verified note contents)
+        // 1. Open Position / Cowboy Chords
         if (type === "maj") {
             if (root === "C") rawPositions.push({ sys: "Open", name: "Açık C Majör", tab: ["x", "3", "2", "0", "1", "0"] });
             if (root === "A") rawPositions.push({ sys: "Open", name: "Açık A Majör", tab: ["x", "0", "2", "2", "2", "0"] });
@@ -97,10 +88,10 @@ export class ChordEngine {
             if (root === "D") rawPositions.push({ sys: "Open", name: "Açık D Minör", tab: ["x", "x", "0", "2", "3", "1"] });
         } else if (type === "7") {
             if (root === "A") rawPositions.push({ sys: "Open", name: "Açık A7 (A-C#-E-G)", tab: ["x", "0", "2", "0", "2", "0"] });
-            if (root === "E") rawPositions.push({ sys: "Open", name: "Açık E7 (E-G#-B-D)", tab: ["0", "2", "0", "1", "0", "0"] });
-            if (root === "D") rawPositions.push({ sys: "Open", name: "Açık D7 (D-F#-A-C)", tab: ["x", "x", "0", "2", "1", "2"] });
-            if (root === "G") rawPositions.push({ sys: "Open", name: "Açık G7 (G-B-D-F)", tab: ["3", "2", "0", "0", "0", "1"] });
-            if (root === "C") rawPositions.push({ sys: "Open", name: "Açık C7 (C-E-G-Bb)", tab: ["x", "3", "2", "3", "1", "0"] });
+            if (root === "E") rawPositions.push({ sys: "Open", name: "Açık E7", tab: ["0", "2", "0", "1", "0", "0"] });
+            if (root === "D") rawPositions.push({ sys: "Open", name: "Açık D7", tab: ["x", "x", "0", "2", "1", "2"] });
+            if (root === "G") rawPositions.push({ sys: "Open", name: "Açık G7", tab: ["3", "2", "0", "0", "0", "1"] });
+            if (root === "C") rawPositions.push({ sys: "Open", name: "Açık C7", tab: ["x", "3", "2", "3", "1", "0"] });
         } else if (type === "maj7") {
             if (root === "C") rawPositions.push({ sys: "Open", name: "Açık Cmaj7", tab: ["x", "3", "2", "0", "0", "0"] });
             if (root === "A") rawPositions.push({ sys: "Open", name: "Açık Amaj7", tab: ["x", "0", "2", "1", "2", "0"] });
@@ -111,7 +102,7 @@ export class ChordEngine {
             if (root === "D") rawPositions.push({ sys: "Open", name: "Açık Dm7", tab: ["x", "x", "0", "2", "1", "1"] });
         }
 
-        // 2. FORMULA-DRIVEN MOVABLE CAGED & BARRE SHAPES (Validated mathematically)
+        // 2. Movable CAGED / Barre Templates
         const getFret = (openNote) => (rootIndex - noteNames.indexOf(openNote) + 12) % 12;
         const eFret = getFret("E");
         const aFret = getFret("A");
@@ -124,9 +115,7 @@ export class ChordEngine {
             rawPositions.push({ sys: "CAGED", name: "E-Formu Minör", tab: [eFret, eFret, eFret, sf(eFret+2), sf(eFret+2), eFret] });
             rawPositions.push({ sys: "CAGED", name: "A-Formu Minör", tab: ["x", aFret, sf(aFret+2), sf(aFret+2), sf(aFret+1), aFret] });
         } else if (type === "7") {
-            // E-form Dominant 7: Root on Low E -> [fret, fret+2, fret, fret+1, fret, fret] relative to E root
             rawPositions.push({ sys: "CAGED", name: "E-Formu Dominant 7", tab: [eFret, sf(eFret+2), eFret, sf(eFret+1), eFret, eFret] });
-            // A-form Dominant 7: Root on A string -> [x, fret, fret+2, fret, fret+2, fret]
             rawPositions.push({ sys: "CAGED", name: "A-Formu Dominant 7", tab: ["x", aFret, sf(aFret+2), aFret, sf(aFret+2), aFret] });
             rawPositions.push({ sys: "Shell", name: "Caz Shell Voicing", tab: ["x", aFret, sf(aFret+2), sf(aFret+1), sf(aFret+2), "x"] });
         } else if (type === "maj7") {
@@ -136,7 +125,6 @@ export class ChordEngine {
             rawPositions.push({ sys: "CAGED", name: "E-Formu Minör 7", tab: [eFret, sf(eFret+2), eFret, sf(eFret+2), eFret, eFret] });
             rawPositions.push({ sys: "CAGED", name: "A-Formu Minör 7", tab: ["x", aFret, sf(aFret+2), aFret, sf(aFret+1), aFret] });
         } else {
-            // General fallback template for extended/other chords
             rawPositions.push({ sys: "CAGED", name: "E-Formu Kök Pozisyon", tab: [eFret, "x", "x", "x", "x", "x"] });
             rawPositions.push({ sys: "CAGED", name: "A-Formu Kök Pozisyon", tab: ["x", aFret, "x", "x", "x", "x"] });
         }
@@ -173,7 +161,7 @@ export class ChordEngine {
         }
 
         const chordTitle = document.getElementById("bottom-chord-title");
-        if (chordTitle) chordTitle.innerText = `${this.currentRoot} ${this.currentChordType.toUpperCase()} (Verified Theory Engine)`;
+        if (chordTitle) chordTitle.innerText = `${this.currentRoot} ${this.currentChordType.toUpperCase()} (Validated Engine)`;
 
         const theoryDisplay = document.getElementById("theory-display");
         if (theoryDisplay) {
