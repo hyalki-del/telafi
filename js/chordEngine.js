@@ -6,7 +6,7 @@ export class ChordEngine {
         this.container = containerElement;
         this.options = Object.assign({
             totalFrets: 12,
-            maxSpan: 4,
+            maxSpan: 4, // Max fret span for hand ergonomics
             defaultStaggerMs: 30
         }, options);
 
@@ -39,7 +39,7 @@ export class ChordEngine {
             "dim":  { intervals: [0, 3, 6, 9], formula: "1 - b3 - b5 - bb7", construction: "Üst üste minör 3'lü aralıkların yığılmasıyla simetrik olarak kurulur.", soundFeel: "<b>Diminished 7'li:</b> Yüksek gerilimli ve dramatik yapı." }
         };
 
-        this.currentRoot = 'A';
+        this.currentRoot = 'C';
         this.currentQuality = 'maj';
         this.currentChordType = 'maj';
         this.currentPositionIndex = 0;
@@ -65,75 +65,125 @@ export class ChordEngine {
                 <div class="quality-selector" id="chord-quality-buttons" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
             </div>
             <div>
-                <div class="section-label" style="font-weight: bold; font-size: 0.85rem; color: #ff9800; margin-bottom: 6px; text-transform: uppercase;">3. Akor Tipi / Uzantı (Validated Engine)</div>
+                <div class="section-label" style="font-weight: bold; font-size: 0.85rem; color: #ff9800; margin-bottom: 6px; text-transform: uppercase;">3. Akor Tipi / Uzantı (Strict Theory Engine)</div>
                 <div class="type-selector" id="chord-type-buttons" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
             </div>
         `;
     }
 
-    generateVoicings(root, type) {
-        const rootIndex = noteNames.indexOf(root);
-        let rawPositions = [];
+    /**
+     * STRICT THEORY-VALIDATED VOICING GENERATOR
+     * Guarantees zero accidental bleed. Every sounding string must belong strictly 
+     * to the target pitch class set, and the root must be present.
+     */
+    generateVoicings(rootNote, chordType) {
+        const rootIndex = noteNames.indexOf(rootNote);
+        const formulaObj = this.chordFormulas[chordType] || this.chordFormulas["maj"];
+        const targetIntervals = formulaObj.intervals;
+        const targetPitchClasses = targetIntervals.map(i => (rootIndex + i) % 12);
+        
+        const openMidiNotes = [64, 59, 55, 50, 45, 40]; // High E (0) to Low E (5)
+        let validVoicings = [];
 
-        // 1. Open Position / Cowboy Chords
-        if (type === "maj") {
-            if (root === "C") rawPositions.push({ sys: "Open", name: "Açık C Majör", tab: ["x", "3", "2", "0", "1", "0"] });
-            if (root === "A") rawPositions.push({ sys: "Open", name: "Açık A Majör", tab: ["x", "0", "2", "2", "2", "0"] });
-            if (root === "G") rawPositions.push({ sys: "Open", name: "Açık G Majör", tab: ["3", "2", "0", "0", "0", "3"] });
-            if (root === "E") rawPositions.push({ sys: "Open", name: "Açık E Majör", tab: ["0", "2", "2", "1", "0", "0"] });
-            if (root === "D") rawPositions.push({ sys: "Open", name: "Açık D Majör", tab: ["x", "x", "0", "2", "3", "2"] });
-        } else if (type === "m") {
-            if (root === "A") rawPositions.push({ sys: "Open", name: "Açık A Minör", tab: ["x", "0", "2", "2", "1", "0"] });
-            if (root === "E") rawPositions.push({ sys: "Open", name: "Açık E Minör", tab: ["0", "2", "2", "0", "0", "0"] });
-            if (root === "D") rawPositions.push({ sys: "Open", name: "Açık D Minör", tab: ["x", "x", "0", "2", "3", "1"] });
-        } else if (type === "7") {
-            if (root === "A") rawPositions.push({ sys: "Open", name: "Açık A7 (A-C#-E-G)", tab: ["x", "0", "2", "0", "2", "0"] });
-            if (root === "E") rawPositions.push({ sys: "Open", name: "Açık E7", tab: ["0", "2", "0", "1", "0", "0"] });
-            if (root === "D") rawPositions.push({ sys: "Open", name: "Açık D7", tab: ["x", "x", "0", "2", "1", "2"] });
-            if (root === "G") rawPositions.push({ sys: "Open", name: "Açık G7", tab: ["3", "2", "0", "0", "0", "1"] });
-            if (root === "C") rawPositions.push({ sys: "Open", name: "Açık C7", tab: ["x", "3", "2", "3", "1", "0"] });
-        } else if (type === "maj7") {
-            if (root === "C") rawPositions.push({ sys: "Open", name: "Açık Cmaj7", tab: ["x", "3", "2", "0", "0", "0"] });
-            if (root === "A") rawPositions.push({ sys: "Open", name: "Açık Amaj7", tab: ["x", "0", "2", "1", "2", "0"] });
-            if (root === "F") rawPositions.push({ sys: "Open", name: "Açık Fmaj7", tab: ["x", "x", "3", "2", "1", "0"] });
-        } else if (type === "m7") {
-            if (root === "A") rawPositions.push({ sys: "Open", name: "Açık Am7", tab: ["x", "0", "2", "0", "1", "0"] });
-            if (root === "E") rawPositions.push({ sys: "Open", name: "Açık Em7", tab: ["0", "2", "2", "0", "3", "0"] });
-            if (root === "D") rawPositions.push({ sys: "Open", name: "Açık Dm7", tab: ["x", "x", "0", "2", "1", "1"] });
+        // Helper to validate and push candidate tabs
+        const evaluateAndPushVoicing = (tab, systemName, posName) => {
+            let soundingNotes = [];
+            let hasRoot = false;
+
+            for (let s = 5; s >= 0; s--) {
+                const val = tab[s];
+                if (val !== "x") {
+                    const fretNum = parseInt(val);
+                    const midi = openMidiNotes[s] + fretNum;
+                    const pc = midi % 12;
+                    
+                    // STRICT CHECK: Discard if any note is NOT in the target chord formula!
+                    if (!targetPitchClasses.includes(pc)) return;
+                    
+                    soundingNotes.push({ string: s, fret: fretNum, pc });
+                    if (pc === rootIndex) hasRoot = true;
+                }
+            }
+
+            // Must have at least 3 sounding strings and must contain the root note
+            if (soundingNotes.length < 3 || !hasRoot) return;
+
+            // Check max span ergonomics for fretted notes
+            const frettedOnly = soundingNotes.filter(n => n.fret > 0);
+            if (frettedOnly.length > 0) {
+                const minF = Math.min(...frettedOnly.map(n => n.fret));
+                const maxF = Math.max(...frettedOnly.map(n => n.fret));
+                if ((maxF - minF) > this.options.maxSpan) return;
+            }
+
+            const tabString = tab.join(',');
+            if (!validVoicings.some(v => v.tab.join(',') === tabString)) {
+                validVoicings.push({
+                    sys: systemName,
+                    name: posName,
+                    tab: tab.map(v => v.toString())
+                });
+            }
+        };
+
+        // 1. INJECT VERIFIED OPEN COWBOY CHORDS (First 3 Frets)
+        if (chordType === "maj") {
+            if (rootNote === "C") evaluateAndPushVoicing(["x", "3", "2", "0", "1", "0"], "Open", "Açık C Majör");
+            if (rootNote === "A") evaluateAndPushVoicing(["x", "0", "2", "2", "2", "0"], "Open", "Açık A Majör");
+            if (rootNote === "G") evaluateAndPushVoicing(["3", "2", "0", "0", "0", "3"], "Open", "Açık G Majör");
+            if (rootNote === "E") evaluateAndPushVoicing(["0", "2", "2", "1", "0", "0"], "Open", "Açık E Majör");
+            if (rootNote === "D") evaluateAndPushVoicing(["x", "x", "0", "2", "3", "2"], "Open", "Açık D Majör");
+        } else if (chordType === "m") {
+            if (rootNote === "A") evaluateAndPushVoicing(["x", "0", "2", "2", "1", "0"], "Open", "Açık A Minör");
+            if (rootNote === "E") evaluateAndPushVoicing(["0", "2", "2", "0", "0", "0"], "Open", "Açık E Minör");
+            if (rootNote === "D") evaluateAndPushVoicing(["x", "x", "0", "2", "3", "1"], "Open", "Açık D Minör");
+        } else if (chordType === "7") {
+            if (rootNote === "A") evaluateAndPushVoicing(["x", "0", "2", "0", "2", "0"], "Open", "Açık A7");
+            if (rootNote === "E") evaluateAndPushVoicing(["0", "2", "0", "1", "0", "0"], "Open", "Açık E7");
+            if (rootNote === "D") evaluateAndPushVoicing(["x", "x", "0", "2", "1", "2"], "Open", "Açık D7");
+            if (rootNote === "G") evaluateAndPushVoicing(["3", "2", "0", "0", "0", "1"], "Open", "Açık G7");
+            if (rootNote === "C") evaluateAndPushVoicing(["x", "3", "2", "3", "1", "0"], "Open", "Açık C7");
         }
 
-        // 2. Movable CAGED / Barre Templates
-        const getFret = (openNote) => (rootIndex - noteNames.indexOf(openNote) + 12) % 12;
-        const eFret = getFret("E");
-        const aFret = getFret("A");
+        // 2. ALGORITHMIC CAGED & BARRE SHAPE SCANNER (Validated against target pitch classes)
+        const getFretForOpen = (openNote) => (rootIndex - noteNames.indexOf(openNote) + 12) % 12;
+        const eFret = getFretForOpen("E");
+        const aFret = getFretForOpen("A");
         const sf = (f) => (f < 0 ? f + 12 : (f > 12 ? f - 12 : f));
 
-        if (type === "maj") {
-            rawPositions.push({ sys: "CAGED", name: "E-Formu Barre", tab: [eFret, eFret, sf(eFret+1), sf(eFret+2), sf(eFret+2), eFret] });
-            rawPositions.push({ sys: "CAGED", name: "A-Formu Barre", tab: ["x", aFret, sf(aFret+2), sf(aFret+2), sf(aFret+2), aFret] });
-        } else if (type === "m") {
-            rawPositions.push({ sys: "CAGED", name: "E-Formu Minör", tab: [eFret, eFret, eFret, sf(eFret+2), sf(eFret+2), eFret] });
-            rawPositions.push({ sys: "CAGED", name: "A-Formu Minör", tab: ["x", aFret, sf(aFret+2), sf(aFret+2), sf(aFret+1), aFret] });
-        } else if (type === "7") {
-            rawPositions.push({ sys: "CAGED", name: "E-Formu Dominant 7", tab: [eFret, sf(eFret+2), eFret, sf(eFret+1), eFret, eFret] });
-            rawPositions.push({ sys: "CAGED", name: "A-Formu Dominant 7", tab: ["x", aFret, sf(aFret+2), aFret, sf(aFret+2), aFret] });
-            rawPositions.push({ sys: "Shell", name: "Caz Shell Voicing", tab: ["x", aFret, sf(aFret+2), sf(aFret+1), sf(aFret+2), "x"] });
-        } else if (type === "maj7") {
-            rawPositions.push({ sys: "CAGED", name: "E-Formu Majör 7", tab: [eFret, sf(eFret+1), eFret, sf(eFret+2), sf(eFret+1), eFret] });
-            rawPositions.push({ sys: "CAGED", name: "A-Formu Majör 7", tab: ["x", aFret, sf(aFret+2), sf(aFret+1), sf(aFret+2), aFret] });
-        } else if (type === "m7") {
-            rawPositions.push({ sys: "CAGED", name: "E-Formu Minör 7", tab: [eFret, sf(eFret+2), eFret, sf(eFret+2), eFret, eFret] });
-            rawPositions.push({ sys: "CAGED", name: "A-Formu Minör 7", tab: ["x", aFret, sf(aFret+2), aFret, sf(aFret+1), aFret] });
+        if (chordType === "maj") {
+            evaluateAndPushVoicing([eFret, eFret, sf(eFret+1), sf(eFret+2), sf(eFret+2), eFret], "CAGED", "E-Formu Barre");
+            evaluateAndPushVoicing(["x", aFret, sf(aFret+2), sf(aFret+2), sf(aFret+2), aFret], "CAGED", "A-Formu Barre");
+        } else if (chordType === "m") {
+            evaluateAndPushVoicing([eFret, eFret, eFret, sf(eFret+2), sf(eFret+2), eFret], "CAGED", "E-Formu Minör");
+            evaluateAndPushVoicing(["x", aFret, sf(aFret+2), sf(aFret+2), sf(aFret+1), aFret], "CAGED", "A-Formu Minör");
+        } else if (chordType === "7") {
+            evaluateAndPushVoicing([eFret, sf(eFret+2), eFret, sf(eFret+1), eFret, eFret], "CAGED", "E-Formu Dominant 7");
+            evaluateAndPushVoicing(["x", aFret, sf(aFret+2), aFret, sf(aFret+2), aFret], "CAGED", "A-Formu Dominant 7");
+            evaluateAndPushVoicing(["x", aFret, sf(aFret+2), sf(aFret+1), sf(aFret+2), "x"], "Shell", "Caz Shell Voicing");
+        } else if (chordType === "maj7") {
+            evaluateAndPushVoicing([eFret, sf(eFret+1), eFret, sf(eFret+2), sf(eFret+1), eFret], "CAGED", "E-Formu Majör 7");
+            evaluateAndPushVoicing(["x", aFret, sf(aFret+2), sf(aFret+1), sf(aFret+2), aFret], "CAGED", "A-Formu Majör 7");
+        } else if (chordType === "m7") {
+            evaluateAndPushVoicing([eFret, sf(eFret+2), eFret, sf(eFret+2), eFret, eFret], "CAGED", "E-Formu Minör 7");
+            evaluateAndPushVoicing(["x", aFret, sf(aFret+2), aFret, sf(aFret+1), aFret], "CAGED", "A-Formu Minör 7");
         } else {
-            rawPositions.push({ sys: "CAGED", name: "E-Formu Kök Pozisyon", tab: [eFret, "x", "x", "x", "x", "x"] });
-            rawPositions.push({ sys: "CAGED", name: "A-Formu Kök Pozisyon", tab: ["x", aFret, "x", "x", "x", "x"] });
+            // Safe fallback root power / triad shapes
+            evaluateAndPushVoicing([eFret, "x", "x", "x", "x", eFret], "Root", "Kök Oktav");
+            evaluateAndPushVoicing(["x", aFret, "x", "x", "x", "x"], "Root", "Kök Nota");
         }
 
-        return rawPositions.map(p => ({
-            sys: p.sys,
-            name: p.name,
-            tab: p.tab.map(v => (v === "x" ? "x" : v.toString()))
-        }));
+        // Fallback safety if no valid shapes matched
+        if (validVoicings.length === 0) {
+            const safeFret = (rootIndex - (40 % 12) + 12) % 12;
+            validVoicings.push({
+                sys: "Fallback",
+                name: "Kök Nota",
+                tab: [safeFret.toString(), "x", "x", "x", "x", safeFret.toString()]
+            });
+        }
+
+        return validVoicings;
     }
 
     getVoicingFrequencies(tabArray) {
@@ -161,7 +211,7 @@ export class ChordEngine {
         }
 
         const chordTitle = document.getElementById("bottom-chord-title");
-        if (chordTitle) chordTitle.innerText = `${this.currentRoot} ${this.currentChordType.toUpperCase()} (Validated Engine)`;
+        if (chordTitle) chordTitle.innerText = `${this.currentRoot} ${this.currentChordType.toUpperCase()} (Strict Theory Engine)`;
 
         const theoryDisplay = document.getElementById("theory-display");
         if (theoryDisplay) {
@@ -178,6 +228,7 @@ export class ChordEngine {
     }
 
     buildControls() {
+        // 1. Root Note Buttons
         const rootContainer = this.container.querySelector('#chord-root-buttons');
         if (rootContainer) {
             rootContainer.innerHTML = '';
@@ -196,6 +247,7 @@ export class ChordEngine {
             });
         }
 
+        // 2. Chord Quality Buttons
         const qualityContainer = this.container.querySelector('#chord-quality-buttons');
         if (qualityContainer) {
             qualityContainer.innerHTML = '';
@@ -269,6 +321,7 @@ export class ChordEngine {
                     const speedMultiplier = speedSlider ? parseFloat(speedSlider.value) : 1.0;
                     const delayStep = 0.115 / speedMultiplier;
 
+                    // Strum direction: Bottom string (low E / index 5) to top string (high E / index 0)
                     for (let index = 5; index >= 0; index--) {
                         const freq = frequencies[index];
                         if (freq) {
