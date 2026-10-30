@@ -65,143 +65,106 @@ export class ChordEngine {
                 <div class="quality-selector" id="chord-quality-buttons" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
             </div>
             <div>
-                <div class="section-label" style="font-weight: bold; font-size: 0.85rem; color: #ff9800; margin-bottom: 6px; text-transform: uppercase;">3. Akor Tipi / Uzantı (Rule Engine)</div>
+                <div class="section-label" style="font-weight: bold; font-size: 0.85rem; color: #ff9800; margin-bottom: 6px; text-transform: uppercase;">3. Akor Tipi / Uzantı (Ergonomic Shapes)</div>
                 <div class="type-selector" id="chord-type-buttons" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
             </div>
         `;
     }
 
-    generateVoicings(rootNote, chordType) {
-        const rootIndex = noteNames.indexOf(rootNote);
-        const formulaObj = this.chordFormulas[chordType] || this.chordFormulas["maj"];
-        const targetIntervals = formulaObj.intervals;
+    /**
+     * ERGONOMIC SHAPE-INSPIRED VOICING GENERATOR
+     * Maps player-preferred CAGED, Drop-2, and Shell voicings dynamically across any root.
+     */
+    generateVoicings(root, type) {
+        const rootIndex = noteNames.indexOf(root);
+        const getFret = (openNote) => (rootIndex - noteNames.indexOf(openNote) + 12) % 12;
         
-        const targetPitchClasses = targetIntervals.map(i => (rootIndex + i) % 12);
-        const openMidiNotes = [64, 59, 55, 50, 45, 40]; 
-        
-        let validVoicings = [];
+        const eFret = getFret("E");
+        const aFret = getFret("A");
+        const dFret = getFret("D");
 
-        const evaluateTab = (tab, positionName, systemName) => {
-            let playedFrets = [];
-            let soundingPitchClasses = new Set();
-            let hasRoot = false;
-
-            for (let sIdx = 5; sIdx >= 0; sIdx--) {
-                const val = tab[sIdx];
-                if (val !== "x") {
-                    const fretNum = parseInt(val);
-                    playedFrets.push(fretNum);
-                    const midi = openMidiNotes[sIdx] + fretNum;
-                    const pc = midi % 12;
-                    soundingPitchClasses.add(pc);
-                    if (pc === rootIndex) hasRoot = true;
-                }
-            }
-
-            if (playedFrets.length < 3 || !hasRoot) return;
-
-            let matchedCount = 0;
-            targetPitchClasses.forEach(tp => {
-                if (soundingPitchClasses.has(tp)) matchedCount++;
-            });
-            if (matchedCount < Math.min(3, targetPitchClasses.length)) return;
-
-            const frettedOnly = playedFrets.filter(f => f > 0);
-            if (frettedOnly.length > 0) {
-                const minF = Math.min(...frettedOnly);
-                const maxF = Math.max(...frettedOnly);
-                if ((maxF - minF) > this.options.maxSpan) return;
-            }
-
-            const tabString = tab.join(',');
-            if (!validVoicings.some(v => v.tab.join(',') === tabString)) {
-                validVoicings.push({
-                    sys: systemName,
-                    name: positionName,
-                    tab: tab.map(v => v.toString())
-                });
-            }
+        const sf = (f) => {
+            while (f < 0) f += 12;
+            while (f > 12) f -= 12;
+            return f;
         };
 
-        for (let baseFret = 0; baseFret <= 12; baseFret++) {
-            for (let f = baseFret; f <= baseFret + 4; f++) {
-                if (f > 12) continue;
-                if ((openMidiNotes[5] + f) % 12 === rootIndex) {
-                    let candidate = ["x", "x", "x", "x", "x", "x"];
-                    candidate[5] = f.toString();
+        let rawPositions = [];
 
-                    for (let s = 4; s >= 0; s--) {
-                        let found = false;
-                        for (let sf = Math.max(0, f - 1); sf <= f + 3; sf++) {
-                            if (sf > 12) continue;
-                            const pc = (openMidiNotes[s] + sf) % 12;
-                            if (targetPitchClasses.includes(pc)) {
-                                candidate[s] = sf.toString();
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (!found && s < 3) candidate[s] = "x";
-                    }
-                    evaluateTab(candidate, `E-Shape @ Fret ${f}`, 'Rule-Engine');
-                }
-            }
-
-            for (let f = baseFret; f <= baseFret + 4; f++) {
-                if (f > 12) continue;
-                if ((openMidiNotes[4] + f) % 12 === rootIndex) {
-                    let candidate = ["x", "x", "x", "x", "x", "x"];
-                    candidate[4] = f.toString();
-                    candidate[5] = "x";
-
-                    for (let s = 3; s >= 0; s--) {
-                        let found = false;
-                        for (let sf = Math.max(0, f - 1); sf <= f + 3; sf++) {
-                            if (sf > 12) continue;
-                            const pc = (openMidiNotes[s] + sf) % 12;
-                            if (targetPitchClasses.includes(pc)) {
-                                candidate[s] = sf.toString();
-                                break;
-                            }
-                        }
-                    }
-                    evaluateTab(candidate, `A-Shape @ Fret ${f}`, 'Rule-Engine');
-                }
-            }
-
-            for (let f = baseFret; f <= baseFret + 4; f++) {
-                if (f > 12) continue;
-                if ((openMidiNotes[3] + f) % 12 === rootIndex) {
-                    let candidate = ["x", "x", "x", "x", "x", "x"];
-                    candidate[3] = f.toString();
-                    candidate[5] = "x";
-                    candidate[4] = "x";
-
-                    for (let s = 2; s >= 0; s--) {
-                        for (let sf = Math.max(0, f - 1); sf <= f + 3; sf++) {
-                            if (sf > 12) continue;
-                            const pc = (openMidiNotes[s] + sf) % 12;
-                            if (targetPitchClasses.includes(pc)) {
-                                candidate[s] = sf.toString();
-                                break;
-                            }
-                        }
-                    }
-                    evaluateTab(candidate, `Triad @ Fret ${f}`, 'Rule-Engine');
-                }
-            }
+        switch (type) {
+            case "maj":
+                rawPositions.push({ sys: "CAGED", name: "E-Formu Barre", tab: [eFret, eFret, sf(eFret+1), sf(eFret+2), sf(eFret+2), eFret] });
+                rawPositions.push({ sys: "CAGED", name: "A-Formu Barre", tab: ["x", aFret, sf(aFret+2), sf(aFret+2), sf(aFret+2), aFret] });
+                rawPositions.push({ sys: "Triad", name: "Üst 3 Tel Triad", tab: ["x", "x", "x", dFret, sf(dFret+2), sf(dFret+4)] });
+                break;
+            case "m":
+                rawPositions.push({ sys: "CAGED", name: "E-Formu Minör", tab: [eFret, eFret, eFret, sf(eFret+2), sf(eFret+2), eFret] });
+                rawPositions.push({ sys: "CAGED", name: "A-Formu Minör", tab: ["x", aFret, sf(aFret+2), sf(aFret+2), sf(aFret+1), aFret] });
+                rawPositions.push({ sys: "Triad", name: "Üst 3 Tel Minör Triad", tab: ["x", "x", "x", dFret, sf(dFret+2), sf(dFret+3)] });
+                break;
+            case "7":
+                rawPositions.push({ sys: "CAGED", name: "E-Formu Dominant 7", tab: [eFret, sf(eFret+2), eFret, sf(eFret+1), eFret, eFret] });
+                rawPositions.push({ sys: "CAGED", name: "A-Formu Dominant 7", tab: ["x", aFret, sf(aFret+2), aFret, sf(aFret+2), aFret] });
+                rawPositions.push({ sys: "Shell", name: "Caz Shell Voicing", tab: ["x", aFret, sf(aFret+2), sf(aFret+1), sf(aFret+2), "x"] });
+                break;
+            case "maj7":
+                rawPositions.push({ sys: "CAGED", name: "E-Formu Majör 7", tab: [eFret, sf(eFret+1), eFret, sf(eFret+2), sf(eFret+1), eFret] });
+                rawPositions.push({ sys: "CAGED", name: "A-Formu Majör 7", tab: ["x", aFret, sf(aFret+2), sf(aFret+1), sf(aFret+2), aFret] });
+                break;
+            case "m7":
+                rawPositions.push({ sys: "CAGED", name: "E-Formu Minör 7", tab: [eFret, sf(eFret+2), eFret, sf(eFret+2), eFret, eFret] });
+                rawPositions.push({ sys: "CAGED", name: "A-Formu Minör 7", tab: ["x", aFret, sf(aFret+2), aFret, sf(aFret+1), aFret] });
+                break;
+            case "6":
+                rawPositions.push({ sys: "CAGED", name: "E-Formu Majör 6", tab: [eFret, sf(eFret+2), sf(eFret+2), sf(eFret+1), eFret, eFret] });
+                rawPositions.push({ sys: "CAGED", name: "A-Formu Majör 6", tab: ["x", aFret, sf(aFret+2), sf(aFret+1), sf(aFret+2), aFret] });
+                break;
+            case "m6":
+                rawPositions.push({ sys: "Jazz", name: "Minör 6 Voicing", tab: ["x", aFret, sf(aFret+2), sf(aFret+2), sf(aFret+1), "x"] });
+                rawPositions.push({ sys: "CAGED", name: "E-Formu Minör 6", tab: [eFret, sf(eFret+2), eFret, sf(eFret+2), sf(eFret+1), eFret] });
+                break;
+            case "9":
+                rawPositions.push({ sys: "Jazz", name: "Dominant 9 Voicing", tab: ["x", aFret, sf(aFret+1), aFret, sf(aFret+2), "x"] });
+                break;
+            case "maj9":
+                rawPositions.push({ sys: "Jazz", name: "Majör 9 Voicing", tab: ["x", aFret, sf(aFret+1), sf(aFret+1), sf(aFret+2), "x"] });
+                break;
+            case "m9":
+                rawPositions.push({ sys: "Jazz", name: "Minör 9 Voicing", tab: ["x", aFret, sf(aFret+1), sf(aFret+1), sf(aFret+1), "x"] });
+                break;
+            case "sus2":
+                rawPositions.push({ sys: "CAGED", name: "E-Formu Sus2", tab: [eFret, sf(eFret+2), sf(eFret+2), eFret, eFret, eFret] });
+                rawPositions.push({ sys: "CAGED", name: "A-Formu Sus2", tab: ["x", aFret, sf(aFret+2), sf(aFret+2), aFret, aFret] });
+                break;
+            case "sus4":
+                rawPositions.push({ sys: "CAGED", name: "E-Formu Sus4", tab: [eFret, sf(eFret+3), sf(eFret+3), eFret, eFret, eFret] });
+                rawPositions.push({ sys: "CAGED", name: "A-Formu Sus4", tab: ["x", aFret, sf(aFret+3), sf(aFret+3), aFret, aFret] });
+                break;
+            case "dim":
+                rawPositions.push({ sys: "Simetrik", name: "Diminished 7 Voicing", tab: ["x", aFret, sf(aFret+1), aFret, sf(aFret+1), "x"] });
+                break;
+            case "m7b5":
+                rawPositions.push({ sys: "Caz", name: "Yarım Eksilmiş (m7b5)", tab: ["x", aFret, sf(aFret+1), aFret, sf(aFret+1), "x"] });
+                break;
+            case "aug":
+                rawPositions.push({ sys: "Simetrik", name: "Artık Akor (Aug)", tab: [eFret, sf(eFret+3), sf(eFret+2), sf(eFret+2), "x", "x"] });
+                break;
+            case "11":
+            case "m11":
+            case "13":
+            case "m13":
+                rawPositions.push({ sys: "Caz", name: "Genişletilmiş Caz Voicing", tab: ["x", aFret, sf(aFret+2), sf(aFret+1), sf(aFret+2), sf(aFret+2)] });
+                break;
+            default:
+                rawPositions.push({ sys: "Temel", name: "Kök Pozisyon", tab: [eFret, "x", "x", "x", "x", "x"] });
+                break;
         }
 
-        if (validVoicings.length === 0) {
-            const eFret = (rootIndex - (40 % 12) + 12) % 12;
-            validVoicings.push({
-                sys: "Theory Fallback",
-                name: "Root Octave",
-                tab: [eFret.toString(), "x", "x", "x", "x", eFret.toString()]
-            });
-        }
-
-        return validVoicings;
+        return rawPositions.map(p => ({
+            sys: p.sys,
+            name: p.name,
+            tab: p.tab.map(v => (v === "x" ? "x" : v.toString()))
+        }));
     }
 
     getVoicingFrequencies(tabArray) {
@@ -217,7 +180,7 @@ export class ChordEngine {
     updateChordView() {
         const positions = this.generateVoicings(this.currentRoot, this.currentChordType);
         if (this.currentPositionIndex >= positions.length) this.currentPositionIndex = 0;
-        const currentPos = positions[this.currentPositionIndex] || { sys: "Default", name: "Root", tab: ["x","x","x","x","x","x"] };
+        const currentPos = positions[this.currentPositionIndex] || positions[0];
 
         const formulaObj = this.chordFormulas[this.currentChordType] || { formula: "1 - 3 - 5", intervals: [0, 4, 7], construction: "", soundFeel: "" };
         const rootIdx = noteNames.indexOf(this.currentRoot);
@@ -229,7 +192,7 @@ export class ChordEngine {
         }
 
         const chordTitle = document.getElementById("bottom-chord-title");
-        if (chordTitle) chordTitle.innerText = `${this.currentRoot} ${this.currentChordType.toUpperCase()} (Rule-Based Engine)`;
+        if (chordTitle) chordTitle.innerText = `${this.currentRoot} ${this.currentChordType.toUpperCase()} (Ergonomic Shape Engine)`;
 
         const theoryDisplay = document.getElementById("theory-display");
         if (theoryDisplay) {
@@ -237,8 +200,8 @@ export class ChordEngine {
             theoryDisplay.innerHTML = `
                 <div style="margin-bottom:8px;"><b>Akor Notaları:</b> ${notesHTML}</div>
                 <div style="margin-bottom:8px;"><b>Aralık Formülü:</b> <span style="color:#ffb400; font-weight:bold;">${formulaObj.formula}</span></div>
-                <div style="margin-bottom:8px;"><b>Nasıl Kurulur (Yapı):</b> ${formulaObj.construction}</div>
-                <div style="background:#121212; padding:10px; border-radius:6px; border-left:3px solid var(--alt-color); margin-top:6px;">${formulaObj.soundFeel}</div>
+                <div style="margin-bottom:8px;"><b>Nasıl Kurulur (Yapı):</b> ${formulaObj.construction || ""}</div>
+                <div style="background:#121212; padding:10px; border-radius:6px; border-left:3px solid var(--alt-color); margin-top:6px;">${formulaObj.soundFeel || ""}</div>
             `;
         }
 
@@ -246,6 +209,7 @@ export class ChordEngine {
     }
 
     buildControls() {
+        // 1. Root Note Buttons
         const rootContainer = this.container.querySelector('#chord-root-buttons');
         if (rootContainer) {
             rootContainer.innerHTML = '';
@@ -264,6 +228,7 @@ export class ChordEngine {
             });
         }
 
+        // 2. Chord Quality Buttons
         const qualityContainer = this.container.querySelector('#chord-quality-buttons');
         if (qualityContainer) {
             qualityContainer.innerHTML = '';
@@ -330,14 +295,14 @@ export class ChordEngine {
                 try {
                     const positions = this.generateVoicings(this.currentRoot, this.currentChordType);
                     if (this.currentPositionIndex >= positions.length) this.currentPositionIndex = 0;
-                    const currentPos = positions[this.currentPositionIndex];
-                    if (!currentPos) return;
-                    
+                    const currentPos = positions[this.currentPositionIndex] || positions[0];
                     const frequencies = this.getVoicingFrequencies(currentPos.tab);
+                    
                     const speedSlider = document.getElementById('speed-slider');
                     const speedMultiplier = speedSlider ? parseFloat(speedSlider.value) : 1.0;
                     const delayStep = 0.115 / speedMultiplier;
 
+                    // Flipped playback: bottom string (low E / index 5) to top string (high E / index 0)
                     for (let index = 5; index >= 0; index--) {
                         const freq = frequencies[index];
                         if (freq) {
