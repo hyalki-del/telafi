@@ -1,6 +1,33 @@
 import { playTone } from './audioEngine.js';
 import { stringTunings, noteNames } from './fretboard.js';
 
+// Universal note map to prevent any # vs b index mismatch (-1 crashes)
+const NOTE_ALIASES = {
+    'C': 0, 'B#': 0, 'Dbb': 0,
+    'C#': 1, 'Db': 1, 'Bx': 1,
+    'D': 2, 'C##': 2, 'Ebb': 2,
+    'D#': 3, 'Eb': 3, 'Fbb': 3,
+    'E': 4, 'Dx': 4, 'Fb': 4,
+    'F': 5, 'E#': 5, 'Gbb': 5,
+    'F#': 6, 'Gb': 6, 'Ex': 6,
+    'G': 7, 'F##': 7, 'Abb': 7,
+    'G#': 8, 'Ab': 8,
+    'A': 9, 'G##': 9, 'Bbb': 9,
+    'A#': 10, 'Bb': 10, 'Cbb': 10,
+    'B': 11, 'Ax': 11, 'Cb': 11
+};
+
+function getNoteIndex(note) {
+    if (!note) return 0;
+    if (NOTE_ALIASES[note.trim()] !== undefined) return NOTE_ALIASES[note.trim()];
+    if (Array.isArray(noteNames) && noteNames.includes(note)) {
+        return noteNames.indexOf(note);
+    }
+    return 0;
+}
+
+const SAFE_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
 export class ChordEngine {
     constructor(containerElement, options = {}) {
         this.container = containerElement;
@@ -9,6 +36,8 @@ export class ChordEngine {
             maxSpan: 4,
             defaultStaggerMs: 30
         }, options);
+
+        this.notesList = (Array.isArray(noteNames) && noteNames.length > 0) ? noteNames : SAFE_NOTES;
 
         this.chordQualities = {
             "maj": { name: "Major", types: ["maj", "maj7", "6", "sus2", "sus4", "add9"] },
@@ -55,16 +84,18 @@ export class ChordEngine {
 
     init() {
         try {
+            if (!this.container) return;
             this.renderLayout();
             this.buildControls();
             this.updateChordView();
             this.attachEventListeners();
         } catch (err) {
-            console.error("ChordEngine init crash prevented:", err);
+            console.error("ChordEngine init error:", err);
         }
     }
 
     renderLayout() {
+        if (!this.container) return;
         this.container.innerHTML = `
             <div>
                 <div class="section-label" style="font-weight: bold; font-size: 0.85rem; color: #ff9800; margin-bottom: 6px; text-transform: uppercase;">1. Kök Ses (Root Note)</div>
@@ -83,12 +114,12 @@ export class ChordEngine {
 
     generateVoicings(rootNote, chordType) {
         try {
-            const rootIndex = noteNames.indexOf(rootNote);
+            const rootIndex = getNoteIndex(rootNote);
             const formulaObj = this.chordFormulas[chordType] || this.chordFormulas["maj"];
             const targetIntervals = formulaObj.intervals || [0, 4, 7];
             const targetPitchClasses = targetIntervals.map(i => (rootIndex + i) % 12);
             
-            const openMidiNotes = [64, 59, 55, 50, 45, 40]; // High E to Low E
+            const openMidiNotes = [64, 59, 55, 50, 45, 40];
             let validVoicings = [];
 
             const evaluateAndPushVoicing = (tab, systemName, posName) => {
@@ -128,7 +159,7 @@ export class ChordEngine {
                 }
             };
 
-            // 1. SPECIFIC VERIFIED OPEN COWBOY CHORDS FOR COMMON ROOTS
+            // 1. OPEN COWBOY CHORDS FOR COMMON ROOTS
             if (rootNote === "A") {
                 if (chordType === "maj") evaluateAndPushVoicing(["x", "0", "2", "2", "2", "0"], "Open", "Açık A Majör");
                 if (chordType === "m")   evaluateAndPushVoicing(["x", "0", "2", "2", "1", "0"], "Open", "Açık A Minör");
@@ -161,10 +192,7 @@ export class ChordEngine {
 
             // 2. UNIVERSAL CAGED / BARRE SCANNER ACROSS ALL 12 ROOTS (D#, F#, Bb, etc.)
             for (let f = 0; f <= 12; f++) {
-                // E-form root check on Low E string (string index 5)
                 if ((openMidiNotes[5] + f) % 12 === rootIndex) {
-                    // Standard E-form intervals relative to low E root fret f:
-                    // [Root(f), 5th(f+7), Octave(f+12), 3rd(f+4), 5th(f+7), Root(f+12)] normalized to frets
                     const norm = (val) => (val > 12 ? val - 12 : val);
                     const eTab = [
                         f, 
@@ -177,7 +205,6 @@ export class ChordEngine {
                     evaluateAndPushVoicing(eTab.map(String), "CAGED", `E-Formu Barre (${f}. Perde)`);
                 }
 
-                // A-form root check on A string (string index 4)
                 if ((openMidiNotes[4] + f) % 12 === rootIndex) {
                     const norm = (val) => (val > 12 ? val - 12 : val);
                     const aTab = [
@@ -192,7 +219,174 @@ export class ChordEngine {
                 }
             }
 
-            // 3. ABSOLUTE SAFETY FALLBACK (Guarantees valid voicings list is never empty)
+            // 3. ABSOLUTE SAFETY FALLBACK
             if (validVoicings.length === 0) {
                 const safeFret = (rootIndex - (40 % 12) + 12) % 12;
                 validVoicings.push({
+                    sys: "Fallback",
+                    name: "Temel Kök Pozisyon",
+                    tab: [safeFret.toString(), "x", "x", safeFret.toString(), "x", "x"]
+                });
+            }
+
+            return validVoicings;
+        } catch (err) {
+            console.error("generateVoicings error:", err);
+            return [{ sys: "Error", name: "Fallback", tab: ["0","2","2","1","0","0"] }];
+        }
+    }
+
+    getVoicingFrequencies(tabArray) {
+        const openMidiNotes = [64, 59, 55, 50, 45, 40];
+        return tabArray.map((fret, stringIdx) => {
+            if (fret === "x") return null;
+            const fretNum = parseInt(fret);
+            const stringInfo = stringTunings[stringIdx];
+            return stringInfo.freq * Math.pow(2, fretNum / 12);
+        });
+    }
+
+    updateChordView() {
+        try {
+            const positions = this.generateVoicings(this.currentRoot, this.currentChordType);
+            if (!positions || positions.length === 0) return;
+            if (this.currentPositionIndex >= positions.length) this.currentPositionIndex = 0;
+            const currentPos = positions[this.currentPositionIndex] || positions[0];
+
+            const formulaObj = this.chordFormulas[this.currentChordType] || { formula: "R, 3, 5", intervals: [0, 4, 7], construction: "", soundFeel: "" };
+            const rootIdx = getNoteIndex(this.currentRoot);
+            const constituentNotes = (formulaObj.intervals || [0, 4, 7]).map(i => this.notesList[(rootIdx + i) % 12] || 'C');
+
+            const posBtnText = document.getElementById("pos-btn-text");
+            if (posBtnText) {
+                posBtnText.innerHTML = `🔄 Alternatif Pozisyon: <b style="color:#ffffff;">${currentPos.sys} (${currentPos.name})</b> <span style="color:var(--alt-color);">(${this.currentPositionIndex + 1} / ${positions.length})</span>`;
+            }
+
+            const chordTitle = document.getElementById("bottom-chord-title");
+            if (chordTitle) chordTitle.innerText = `${this.currentRoot} ${this.currentChordType.toUpperCase()} (Textbook Engine)`;
+
+            const theoryDisplay = document.getElementById("theory-display");
+            if (theoryDisplay) {
+                const notesHTML = constituentNotes.map(n => `<span class="note-badge">${n}</span>`).join('');
+                theoryDisplay.innerHTML = `
+                    <div style="margin-bottom:8px;"><b>Akor Notaları:</b> ${notesHTML}</div>
+                    <div style="margin-bottom:8px;"><b>Aralık Formülü:</b> <span style="color:#ffb400; font-weight:bold;">${formulaObj.formula}</span></div>
+                    <div style="margin-bottom:8px;"><b>Nasıl Kurulur (Yapı):</b> ${formulaObj.construction || ""}</div>
+                    <div style="background:#121212; padding:10px; border-radius:6px; border-left:3px solid var(--alt-color); margin-top:6px;">${formulaObj.soundFeel || ""}</div>
+                `;
+            }
+
+            return { currentPos, rootIdx, intervals: formulaObj.intervals };
+        } catch (err) {
+            console.error("updateChordView error:", err);
+        }
+    }
+
+    buildControls() {
+        const rootContainer = this.container.querySelector('#chord-root-buttons');
+        if (rootContainer) {
+            rootContainer.innerHTML = '';
+            this.notesList.forEach(note => {
+                const btn = document.createElement('button');
+                btn.className = 'ctrl-btn' + (note === this.currentRoot ? ' active' : '');
+                btn.textContent = note;
+                btn.onclick = () => {
+                    this.currentRoot = note;
+                    this.currentPositionIndex = 0;
+                    rootContainer.querySelectorAll('.ctrl-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    if (window.appUpdateView) window.appUpdateView();
+                };
+                rootContainer.appendChild(btn);
+            });
+        }
+
+        const qualityContainer = this.container.querySelector('#chord-quality-buttons');
+        if (qualityContainer) {
+            qualityContainer.innerHTML = '';
+            Object.keys(this.chordQualities).forEach(qKey => {
+                const btn = document.createElement('button');
+                btn.className = 'ctrl-btn' + (qKey === this.currentQuality ? ' active' : '');
+                btn.textContent = this.chordQualities[qKey].name;
+                btn.onclick = () => {
+                    this.currentQuality = qKey;
+                    this.currentChordType = this.chordQualities[qKey].types[0];
+                    this.currentPositionIndex = 0;
+                    
+                    qualityContainer.querySelectorAll('.ctrl-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    this.buildTypeControls();
+                    if (window.appUpdateView) window.appUpdateView();
+                };
+                qualityContainer.appendChild(btn);
+            });
+        }
+
+        this.buildTypeControls();
+    }
+
+    buildTypeControls() {
+        const typeContainer = this.container.querySelector('#chord-type-buttons');
+        if (!typeContainer) return;
+        typeContainer.innerHTML = '';
+        
+        const qualityObj = this.chordQualities[this.currentQuality] || this.chordQualities["maj"];
+        const allowedTypes = qualityObj.types || ["maj"];
+        if (!allowedTypes.includes(this.currentChordType)) {
+            this.currentChordType = allowedTypes[0];
+        }
+
+        allowedTypes.forEach(typeKey => {
+            const btn = document.createElement('button');
+            btn.className = 'ctrl-btn' + (typeKey === this.currentChordType ? ' active' : '');
+            btn.textContent = typeKey.toUpperCase();
+            btn.onclick = () => {
+                this.currentChordType = typeKey;
+                this.currentPositionIndex = 0;
+                typeContainer.querySelectorAll('.ctrl-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                if (window.appUpdateView) window.appUpdateView();
+            };
+            typeContainer.appendChild(btn);
+        });
+    }
+
+    attachEventListeners() {
+        const posCycleBtn = document.getElementById('position-cycle-btn');
+        if (posCycleBtn) {
+            posCycleBtn.onclick = () => {
+                const positions = this.generateVoicings(this.currentRoot, this.currentChordType);
+                this.currentPositionIndex = (this.currentPositionIndex + 1) % positions.length;
+                if (window.appUpdateView) window.appUpdateView();
+            };
+        }
+
+        const playBtn = document.getElementById('play-chord-btn');
+        if (playBtn) {
+            playBtn.onclick = () => {
+                try {
+                    const positions = this.generateVoicings(this.currentRoot, this.currentChordType);
+                    if (!positions || positions.length === 0) return;
+                    if (this.currentPositionIndex >= positions.length) this.currentPositionIndex = 0;
+                    const currentPos = positions[this.currentPositionIndex] || positions[0];
+                    const frequencies = this.getVoicingFrequencies(currentPos.tab);
+                    
+                    const speedSlider = document.getElementById('speed-slider');
+                    const speedMultiplier = speedSlider ? parseFloat(speedSlider.value) : 1.0;
+                    const delayStep = 0.115 / speedMultiplier;
+
+                    for (let index = 5; index >= 0; index--) {
+                        const freq = frequencies[index];
+                        if (freq) {
+                            const stepOrder = 5 - index;
+                            playTone(freq, stepOrder * delayStep, 1.5);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Playback error:", err);
+                }
+            };
+        }
+    }
+}
