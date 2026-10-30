@@ -1,121 +1,155 @@
-import * as Tone from 'https://esm.sh/tone';
-
+let audioCtx = null;
 let currentSoundEngine = 'guitar';
-let activeBendNode = null;
+let activeBend = null;
+let initialY = 0;
 let safetyTimeout = null;
 
 export function setSoundEngine(val) {
     currentSoundEngine = val;
 }
 
-// Ensure AudioContext starts on user interaction
-async function initAudio() {
-    if (Tone.context.state !== 'running') {
-        await Tone.start();
+function initAudio() {
+    if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContextClass();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(err => console.warn("AudioContext resume error:", err));
     }
 }
 
-/**
- * Play tone using Tone.js physical modeling & synths
- */
-export function playTone(frequency, startTime = 0, duration = 2.0) {
+export function playTone(frequency, startTime = 0, duration = 2.0, targetGainNode = null) {
     initAudio();
+    if (!audioCtx) return;
 
-    const now = Tone.now() + startTime;
+    const now = audioCtx.currentTime;
+    const start = now + startTime;
 
-    if (currentSoundEngine === 'guitar') {
-        // --- REALISTIC GUITAR (Karplus-Strong Physical Modeling) ---
-        const pluckSynth = new Tone.PluckSynth({
-            attackNoise: 1.2,
-            damping: 4000,
-            resonance: 0.98
-        }).toDestination();
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    const destination = targetGainNode || audioCtx.destination;
 
-        // Trigger note by frequency or MIDI note name
-        pluckSynth.triggerAttack(frequency, now);
+    if (currentSoundEngine === 'piano') {
+        osc1.type = 'sine';
+        osc2.type = 'triangle';
+        osc1.frequency.setValueAtTime(frequency, start);
+        osc2.frequency.setValueAtTime(frequency, start);
 
-        // Clean up node after duration
-        setTimeout(() => {
-            pluckSynth.dispose();
-        }, (startTime + duration) * 1000);
+        gainNode.gain.setValueAtTime(0.0001, start);
+        gainNode.gain.linearRampToValueAtTime(0.25, start + 0.015);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, start + duration);
 
+        osc1.connect(gainNode);
+        osc2.connect(gainNode);
     } else {
-        // --- MELLOW PIANO SYNTH ---
-        const pianoSynth = new Tone.Synth({
-            oscillator: { type: 'triangle8' },
-            envelope: {
-                attack: 0.015,
-                decay: 1.2,
-                sustain: 0.1,
-                release: 1.5
-            }
-        }).toDestination();
+        osc1.type = 'sawtooth';
+        osc2.type = 'triangle';
+        osc1.frequency.setValueAtTime(frequency, start);
+        osc2.frequency.setValueAtTime(frequency, start);
 
-        pianoSynth.triggerAttackRelease(frequency, duration, now);
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(Math.min(frequency * 4.0, 8000), start);
 
-        setTimeout(() => {
-            pianoSynth.dispose();
-        }, (startTime + duration) * 1000);
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gainNode);
+
+        gainNode.gain.setValueAtTime(0.0001, start);
+        gainNode.gain.linearRampToValueAtTime(0.35, start + 0.012);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, start + duration);
     }
+
+    gainNode.connect(destination);
+
+    osc1.start(start);
+    osc2.start(start);
+    osc1.stop(start + duration);
+    osc2.stop(start + duration);
+
+    return { osc1, osc2, gainNode };
 }
 
-/**
- * Interactive String Bending with Tone.js Synth
- */
 export function startBendingNote(frequency, fretElement, stringPathEl, fretLeftX, clientY) {
     initAudio();
     if (safetyTimeout) clearTimeout(safetyTimeout);
+    if (!audioCtx) return;
 
-    const initialY = clientY;
-    const now = Tone.now();
+    initialY = clientY;
+    const now = audioCtx.currentTime;
+    
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
 
-    const synth = new Tone.Synth({
-        oscillator: { type: currentSoundEngine === 'piano' ? 'sine' : 'sawtooth' },
-        envelope: { attack: 0.02, decay: 1, sustain: 0.8, release: 0.4 }
-    }).toDestination();
+    osc1.type = currentSoundEngine === 'piano' ? 'sine' : 'sawtooth';
+    osc2.type = 'triangle';
+    osc1.frequency.setValueAtTime(frequency, now);
+    osc2.frequency.setValueAtTime(frequency, now);
 
-    synth.triggerAttack(frequency, now);
+    gainNode.gain.setValueAtTime(0.0001, now);
+    gainNode.gain.linearRampToValueAtTime(0.4, now + 0.015);
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(frequency * 3.5, now);
+
+    osc1.connect(filter);
+    osc2.connect(filter);
+    filter.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    osc1.start(now);
+    osc2.start(now);
+
     fretElement.classList.add('bending');
 
-    const totalWidth = stringPathEl.parentElement.clientWidth;
-
-    // Track bend movement globally
-    const handleMove = (e) => {
-        const clientYPos = e.touches ? e.touches[0].clientY : e.clientY;
-        let deltaY = clientYPos - initialY;
-        let bendSemitones = Math.min(2, (Math.abs(deltaY) / 50) * 2);
-        
-        // Pitch bend calculation
-        let newFreq = frequency * Math.pow(2, bendSemitones / 12);
-        synth.frequency.rampTo(newFreq, 0.02);
-
-        const midX = fretLeftX + 30;
-        const midY = 20 + (deltaY * 0.7);
-        stringPathEl.setAttribute('d', `M 0 20 Q ${midX} ${midY} ${totalWidth} 20`);
+    activeBend = {
+        osc1, osc2, gainNode,
+        baseFreq: frequency,
+        fretElement, stringPathEl, fretLeftX,
+        totalWidth: stringPathEl.parentElement.clientWidth
     };
 
-    const handleRelease = () => {
-        synth.triggerRelease(Tone.now() + 0.1);
-        stringPathEl.setAttribute('d', `M 0 20 L ${totalWidth} 20`);
-        fretElement.classList.remove('bending');
-        
-        window.removeEventListener('mousemove', handleMove);
-        window.removeEventListener('mouseup', handleRelease);
-        window.removeEventListener('touchmove', handleMove);
-        window.removeEventListener('touchend', handleRelease);
-        
-        setTimeout(() => synth.dispose(), 600);
-        if (safetyTimeout) clearTimeout(safetyTimeout);
-    };
-
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('mouseup', handleRelease);
-    window.addEventListener('touchmove', handleMove, { passive: false });
-    window.addEventListener('touchend', handleRelease);
-
-    safetyTimeout = setTimeout(() => { handleRelease(); }, 3000);
+    safetyTimeout = setTimeout(() => { releaseBend(); }, 3000);
 }
 
-// Stub exports to maintain compatibility with existing main.js bindings
-export function updateBend() {}
-export function releaseBend() {}
+export function updateBend(currentY) {
+    if (!activeBend || !audioCtx) return;
+    let deltaY = currentY - initialY;
+    let bendMagnitude = Math.abs(deltaY);
+    let bendSemitones = Math.min(2, (bendMagnitude / 50) * 2);
+    let newFreq = activeBend.baseFreq * Math.pow(2, bendSemitones / 12);
+
+    const now = audioCtx.currentTime;
+    activeBend.osc1.frequency.setValueAtTime(newFreq, now);
+    activeBend.osc2.frequency.setValueAtTime(newFreq, now);
+
+    const midX = activeBend.fretLeftX + 30;
+    const midY = 20 + (deltaY * 0.7);
+    const pathData = `M 0 20 Q ${midX} ${midY} ${activeBend.totalWidth} 20`;
+    activeBend.stringPathEl.setAttribute('d', pathData);
+}
+
+export function releaseBend() {
+    if (!activeBend || !audioCtx) return;
+    if (safetyTimeout) clearTimeout(safetyTimeout);
+
+    const now = audioCtx.currentTime;
+    activeBend.gainNode.gain.setValueAtTime(activeBend.gainNode.gain.value, now);
+    activeBend.gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+    activeBend.osc1.stop(now + 0.4);
+    activeBend.osc2.stop(now + 0.4);
+
+    try {
+        activeBend.osc1.disconnect();
+        activeBend.osc2.disconnect();
+        activeBend.gainNode.disconnect();
+    } catch (e) {}
+
+    activeBend.stringPathEl.setAttribute('d', `M 0 20 L ${activeBend.totalWidth} 20`);
+    activeBend.fretElement.classList.remove('bending');
+    activeBend = null;
+}
