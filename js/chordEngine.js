@@ -39,7 +39,7 @@ export class ChordEngine {
             "dim":  { intervals: [0, 3, 6, 9], formula: "1 - b3 - b5 - bb7", construction: "Üst üste minör 3'lü aralıkların yığılmasıyla simetrik olarak kurulur.", soundFeel: "<b>Diminished 7'li:</b> Yüksek gerilimli ve dramatik yapı." }
         };
 
-        this.currentRoot = 'A';
+        this.currentRoot = 'C';
         this.currentQuality = 'maj';
         this.currentChordType = 'maj';
         this.currentPositionIndex = 0;
@@ -65,15 +65,16 @@ export class ChordEngine {
                 <div class="quality-selector" id="chord-quality-buttons" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
             </div>
             <div>
-                <div class="section-label" style="font-weight: bold; font-size: 0.85rem; color: #ff9800; margin-bottom: 6px; text-transform: uppercase;">3. Akor Tipi / Uzantı (Ergonomic Shapes)</div>
+                <div class="section-label" style="font-weight: bold; font-size: 0.85rem; color: #ff9800; margin-bottom: 6px; text-transform: uppercase;">3. Akor Tipi / Uzantı (CAGED & Open Shapes)</div>
                 <div class="type-selector" id="chord-type-buttons" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
             </div>
         `;
     }
 
     /**
-     * ERGONOMIC SHAPE-INSPIRED VOICING GENERATOR
-     * Maps player-preferred CAGED, Drop-2, and Shell voicings dynamically across any root.
+     * FORMULAIC CAGED & OPEN POSITION SHAPE GENERATOR
+     * Automatically injects open-position shapes (frets 0-3) when matching root,
+     * and generates parametric CAGED / Shell shapes across the fretboard.
      */
     generateVoicings(root, type) {
         const rootIndex = noteNames.indexOf(root);
@@ -91,6 +92,33 @@ export class ChordEngine {
 
         let rawPositions = [];
 
+        // 1. OPEN POSITION SPECIFIC SHAPES (First 3 Frets) when root matches natural open chords
+        if (type === "maj") {
+            if (root === "C") rawPositions.push({ sys: "Open", name: "Açık Pozisyon (Open C)", tab: ["x", "3", "2", "0", "1", "0"] });
+            if (root === "A") rawPositions.push({ sys: "Open", name: "Açık Pozisyon (Open A)", tab: ["x", "0", "2", "2", "2", "0"] });
+            if (root === "G") rawPositions.push({ sys: "Open", name: "Açık Pozisyon (Open G)", tab: ["3", "2", "0", "0", "0", "3"] });
+            if (root === "E") rawPositions.push({ sys: "Open", name: "Açık Pozisyon (Open E)", tab: ["0", "2", "2", "1", "0", "0"] });
+            if (root === "D") rawPositions.push({ sys: "Open", name: "Açık Pozisyon (Open D)", tab: ["x", "x", "0", "2", "3", "2"] });
+        } else if (type === "m") {
+            if (root === "A") rawPositions.push({ sys: "Open", name: "Açık Pozisyon (Open Am)", tab: ["x", "0", "2", "2", "1", "0"] });
+            if (root === "E") rawPositions.push({ sys: "Open", name: "Açık Pozisyon (Open Em)", tab: ["0", "2", "2", "0", "0", "0"] });
+            if (root === "D") rawPositions.push({ sys: "Open", name: "Açık Pozisyon (Open Dm)", tab: ["x", "x", "0", "2", "3", "1"] });
+        } else if (type === "7") {
+            if (root === "E") rawPositions.push({ sys: "Open", name: "Açık Pozisyon (Open E7)", tab: ["0", "2", "0", "1", "0", "0"] });
+            if (root === "A") rawPositions.push({ sys: "Open", name: "Açık Pozisyon (Open A7)", tab: ["x", "0", "2", "0", "2", "0"] });
+            if (root === "D") rawPositions.push({ sys: "Open", name: "Açık Pozisyon (Open D7)", tab: ["x", "x", "0", "2", "1", "2"] });
+            if (root === "G") rawPositions.push({ sys: "Open", name: "Açık Pozisyon (Open G7)", tab: ["3", "2", "0", "0", "0", "1"] });
+        } else if (type === "maj7") {
+            if (root === "C") rawPositions.push({ sys: "Open", name: "Açık Pozisyon (Open Cmaj7)", tab: ["x", "3", "2", "0", "0", "0"] });
+            if (root === "A") rawPositions.push({ sys: "Open", name: "Açık Pozisyon (Open Amaj7)", tab: ["x", "0", "2", "1", "2", "0"] });
+            if (root === "F") rawPositions.push({ sys: "Open", name: "Açık Pozisyon (Open Fmaj7)", tab: ["x", "x", "3", "2", "1", "0"] });
+        } else if (type === "m7") {
+            if (root === "A") rawPositions.push({ sys: "Open", name: "Açık Pozisyon (Open Am7)", tab: ["x", "0", "2", "0", "1", "0"] });
+            if (root === "E") rawPositions.push({ sys: "Open", name: "Açık Pozisyon (Open Em7)", tab: ["0", "2", "2", "0", "3", "0"] });
+            if (root === "D") rawPositions.push({ sys: "Open", name: "Açık Pozisyon (Open Dm7)", tab: ["x", "x", "0", "2", "1", "1"] });
+        }
+
+        // 2. CAGED & MOVABLE ERGONOMIC TEMPLATES
         switch (type) {
             case "maj":
                 rawPositions.push({ sys: "CAGED", name: "E-Formu Barre", tab: [eFret, eFret, sf(eFret+1), sf(eFret+2), sf(eFret+2), eFret] });
@@ -192,7 +220,7 @@ export class ChordEngine {
         }
 
         const chordTitle = document.getElementById("bottom-chord-title");
-        if (chordTitle) chordTitle.innerText = `${this.currentRoot} ${this.currentChordType.toUpperCase()} (Ergonomic Shape Engine)`;
+        if (chordTitle) chordTitle.innerText = `${this.currentRoot} ${this.currentChordType.toUpperCase()} (CAGED & Open Shape Engine)`;
 
         const theoryDisplay = document.getElementById("theory-display");
         if (theoryDisplay) {
@@ -302,7 +330,6 @@ export class ChordEngine {
                     const speedMultiplier = speedSlider ? parseFloat(speedSlider.value) : 1.0;
                     const delayStep = 0.115 / speedMultiplier;
 
-                    // Flipped playback: bottom string (low E / index 5) to top string (high E / index 0)
                     for (let index = 5; index >= 0; index--) {
                         const freq = frequencies[index];
                         if (freq) {
