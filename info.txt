@@ -6,9 +6,9 @@ Bu proje; gitaristler, müzik teorisi öğrenenler ve geliştiriciler için tasa
 
 ## 🚀 Son Yapılan Güncellemeler ve Mimari Geliştirmeler
 
-1. **Kural Tabanlı Algoritmik Akor Motoru (Rule-Based Chord Engine):** Statik veya ezbere dayalı akor sözlükleri (fallback matrisleri) tamamen kaldırılarak yerine müzik teorisi aralık formüllerini matematiksel olarak hesaplayan bir yapı kurulmuştur. Motor; insan eli ergonomisini (`maxSpan = 4`) gözeterek tüm akor türlerini (7'liler, 9'lular, sus, dim, aug vb.) fretboard üzerinde dinamik olarak tarar ve gösterir.
-2. **Teori Paneli Bilgi Hiyerarşisi:** Akor analiz panelindeki açıklama sırası güncellenmiştir; öncelikli olarak akorun **nasıl kurulduğu (yapı/konstruksiyon)**, ardından alt kısımda **ses ve tını karakteri (his/duygu)** gösterilecek şekilde optimize edilmiştir.
-3. **Doğal Çalma / Strum Yönü:** Akor dinleme (`Dinle`) fonksiyonu tersine çevrilmiştir. Arpej ve çalma sırası, gitarın en kalın telinden (alt/kök nota) en ince teline (üst/tiz nota) doğru doğal bir aşağı yönlü vuruş sırasıyla çalışacak şekilde ayarlanmıştır.
+1. **Kurallara Dayalı Algoritmik ve Güvenli Akor Motoru (Rule-Based & Safe Chord Engine):** Statik veya ezbere dayalı kısıtlamalar yerine müzik teorisi aralık formüllerini matematiksel olarak hesaplayan, tüm 12 kök sesi (diyez ve bemoller dahil) evrensel nota normalleştirme ile destekleyen bir yapı kurulmuştur. Motor; insan eli ergonomisini (`maxSpan = 4`), en az 3 ses kuralını ve "accidental bleed" (istenmeyen nota sızıntısı) filtresini gözeterek tüm akor türlerini fretboard üzerinde dinamik olarak tarar, doğrular ve gösterir.
+2. **Teori Paneli Bilgi Hiyerarşisi:** Akor analiz panelindeki açıklama sırası optimize edilmiştir; öncelikli olarak akorun **nasıl kurulduğu (yapı/konstruksiyon)**, ardından alt kısımda **ses ve tını karakteri (his/duygu)** gösterilmektedir.
+3. **Doğal Çalma / Strum Yönü:** Akor dinleme (`Dinle`) fonksiyonu en kalın telden (alt/kök nota) en ince teline (üst/tiz nota) doğru doğal bir aşağı yönlü vuruş sırasıyla çalışacak şekilde ayarlanmıştır. Web Audio API context kilitlenmeleri kararlı hale getirilmiştir.
 
 ---
 
@@ -22,8 +22,8 @@ gitar-motoru/
 ├── style.css               # Tüm UI stilleri, tema değişkenleri ve fretboard görselleri
 │
 └── js/
-    ├── main.js             # Ana yönetici (Uygulama yaşam döngüsü, UI dinleyicileri ve köprü)
-    ├── audioEngine.js      # Web Audio API (Osilatörler, ses motoru değişimi, tel bükme ve attack rampa yönetimi)
-    ├── fretboard.js        # Klavye çizimi, teller, perdeler, inlays ve görsel render motoru
-    ├── scaleEngine.js      # Gam verileri, aralık formülleri ve seviye (Start, Understand, Advance) yapıları
-    └── chordEngine.js      # Kural tabanlı matematiksel akor formülü, dinamik voicing tarayıcı ve teori matrisi
+├── main.js             # Ana yönetici (Uygulama yaşam döngüsü, UI dinleyicileri ve köprü)
+├── audioEngine.js      # Web Audio API (Osilatörler, ses motoru değişimi, tel bükme ve attack rampa yönetimi)
+├── fretboard.js        # Klavye çizimi, teller, perdeler, inlays ve görsel render motoru
+├── scaleEngine.js      # Gam verileri, aralık formülleri ve seviye (Start, Understand, Advance) yapıları
+└── chordEngine.js      # Kurallara dayalı matematiksel akor formülü, evrensel nota eşleme ve dinamik voicing tarayıcı
