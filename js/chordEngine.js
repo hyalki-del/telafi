@@ -234,7 +234,6 @@ export class ChordEngine {
         const theoryDisplay = document.getElementById("theory-display");
         if (theoryDisplay) {
             const notesHTML = constituentNotes.map(n => `<span class="note-badge">${n}</span>`).join('');
-            // REORDERED: Construction first, then sound/feel at the bottom
             theoryDisplay.innerHTML = `
                 <div style="margin-bottom:8px;"><b>Akor Notaları:</b> ${notesHTML}</div>
                 <div style="margin-bottom:8px;"><b>Aralık Formülü:</b> <span style="color:#ffb400; font-weight:bold;">${formulaObj.formula}</span></div>
@@ -277,7 +276,7 @@ export class ChordEngine {
                     this.currentChordType = this.chordQualities[qKey].types[0];
                     this.currentPositionIndex = 0;
                     
-                    qualityCategory.querySelectorAll('.ctrl-btn').forEach(b => b.classList.remove('active'));
+                    qualityContainer.querySelectorAll('.ctrl-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                     
                     this.buildTypeControls();
@@ -338,11 +337,10 @@ export class ChordEngine {
                 const speedMultiplier = speedSlider ? parseFloat(speedSlider.value) : 1.0;
                 const delayStep = 0.115 / speedMultiplier;
 
-                // FLIPPED: Play from bottom string (index 5, low E) to top string (index 0, high E)
+                // Flipped playback: bottom string (low E / index 5) to top string (high E / index 0)
                 for (let index = 5; index >= 0; index--) {
                     const freq = frequencies[index];
                     if (freq) {
-                        // Stagger delay proportional to string index traversal (5 -> 4 -> 3 -> 2 -> 1 -> 0)
                         const stepOrder = 5 - index;
                         playTone(freq, stepOrder * delayStep, 1.5);
                     }
