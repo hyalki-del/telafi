@@ -88,7 +88,7 @@ export class ChordEngine {
             const targetIntervals = formulaObj.intervals || [0, 4, 7];
             const targetPitchClasses = targetIntervals.map(i => (rootIndex + i) % 12);
             
-            const openMidiNotes = [64, 59, 55, 50, 45, 40];
+            const openMidiNotes = [64, 59, 55, 50, 45, 40]; // High E to Low E
             let validVoicings = [];
 
             const evaluateAndPushVoicing = (tab, systemName, posName) => {
@@ -128,193 +128,71 @@ export class ChordEngine {
                 }
             };
 
-            const sf = (f) => (f < 0 ? f + 12 : (f > 12 ? f - 12 : f));
+            // 1. SPECIFIC VERIFIED OPEN COWBOY CHORDS FOR COMMON ROOTS
+            if (rootNote === "A") {
+                if (chordType === "maj") evaluateAndPushVoicing(["x", "0", "2", "2", "2", "0"], "Open", "Açık A Majör");
+                if (chordType === "m")   evaluateAndPushVoicing(["x", "0", "2", "2", "1", "0"], "Open", "Açık A Minör");
+                if (chordType === "7")   evaluateAndPushVoicing(["x", "0", "2", "0", "2", "0"], "Open", "Açık A7");
+                if (chordType === "maj7") evaluateAndPushVoicing(["x", "0", "2", "1", "2", "0"], "Open", "Açık Amaj7");
+                if (chordType === "sus4") evaluateAndPushVoicing(["x", "0", "2", "2", "3", "0"], "Open", "Açık Asus4");
+                if (chordType === "sus2") evaluateAndPushVoicing(["x", "0", "2", "2", "0", "0"], "Open", "Açık Asus2");
+            }
+            if (rootNote === "C") {
+                if (chordType === "maj") evaluateAndPushVoicing(["x", "3", "2", "0", "1", "0"], "Open", "Açık C Majör");
+                if (chordType === "maj7") evaluateAndPushVoicing(["x", "3", "2", "0", "0", "0"], "Open", "Açık Cmaj7");
+                if (chordType === "7")   evaluateAndPushVoicing(["x", "3", "2", "3", "1", "0"], "Open", "Açık C7");
+            }
+            if (rootNote === "G") {
+                if (chordType === "maj") evaluateAndPushVoicing(["3", "2", "0", "0", "0", "3"], "Open", "Açık G Majör");
+                if (chordType === "7")   evaluateAndPushVoicing(["3", "2", "0", "0", "0", "1"], "Open", "Açık G7");
+            }
+            if (rootNote === "E") {
+                if (chordType === "maj") evaluateAndPushVoicing(["0", "2", "2", "1", "0", "0"], "Open", "Açık E Majör");
+                if (chordType === "m")   evaluateAndPushVoicing(["0", "2", "2", "0", "0", "0"], "Open", "Açık E Minör");
+                if (chordType === "7")   evaluateAndPushVoicing(["0", "2", "0", "1", "0", "0"], "Open", "Açık E7");
+                if (chordType === "m7")  evaluateAndPushVoicing(["0", "2", "2", "0", "3", "0"], "Open", "Açık Em7");
+            }
+            if (rootNote === "D") {
+                if (chordType === "maj") evaluateAndPushVoicing(["x", "x", "0", "2", "3", "2"], "Open", "Açık D Majör");
+                if (chordType === "m")   evaluateAndPushVoicing(["x", "x", "0", "2", "3", "1"], "Open", "Açık D Minör");
+                if (chordType === "7")   evaluateAndPushVoicing(["x", "x", "0", "2", "1", "2"], "Open", "Açık D7");
+                if (chordType === "sus4") evaluateAndPushVoicing(["x", "x", "0", "2", "3", "3"], "Open", "Açık Dsus4");
+            }
 
-            // Safe Open & Barre Matching
-            if (rootNote === "A" && chordType === "maj") evaluateAndPushVoicing(["x", "0", "2", "2", "2", "0"], "Open", "Açık A Majör");
-            if (rootNote === "A" && chordType === "m")   evaluateAndPushVoicing(["x", "0", "2", "2", "1", "0"], "Open", "Açık A Minör");
-            if (rootNote === "A" && chordType === "7")   evaluateAndPushVoicing(["x", "0", "2", "0", "2", "0"], "Open", "Açık A7");
-            if (rootNote === "C" && chordType === "maj") evaluateAndPushVoicing(["x", "3", "2", "0", "1", "0"], "Open", "Açık C Majör");
-            if (rootNote === "G" && chordType === "maj") evaluateAndPushVoicing(["3", "2", "0", "0", "0", "3"], "Open", "Açık G Majör");
-            if (rootNote === "E" && chordType === "maj") evaluateAndPushVoicing(["0", "2", "2", "1", "0", "0"], "Open", "Açık E Majör");
-            if (rootNote === "E" && chordType === "m")   evaluateAndPushVoicing(["0", "2", "2", "0", "0", "0"], "Open", "Açık E Minör");
-            if (rootNote === "D" && chordType === "maj") evaluateAndPushVoicing(["x", "x", "0", "2", "3", "2"], "Open", "Açık D Majör");
-            if (rootNote === "D" && chordType === "m")   evaluateAndPushVoicing(["x", "x", "0", "2", "3", "1"], "Open", "Açık D Minör");
-
+            // 2. UNIVERSAL CAGED / BARRE SCANNER ACROSS ALL 12 ROOTS (D#, F#, Bb, etc.)
             for (let f = 0; f <= 12; f++) {
+                // E-form root check on Low E string (string index 5)
                 if ((openMidiNotes[5] + f) % 12 === rootIndex) {
-                    if (chordType === "maj") evaluateAndPushVoicing([f, f, sf(f+1), sf(f+2), sf(f+2), f], "CAGED", `E-Formu Barre (${f}. Perde)`);
-                    if (chordType === "m")   evaluateAndPushVoicing([f, f, f, sf(f+2), sf(f+2), f], "CAGED", `E-Formu Minör (${f}. Perde)`);
-                    if (chordType === "7")   evaluateAndPushVoicing([f, sf(f+2), f, sf(f+1), f, f], "CAGED", `E-Formu 7 (${f}. Perde)`);
+                    // Standard E-form intervals relative to low E root fret f:
+                    // [Root(f), 5th(f+7), Octave(f+12), 3rd(f+4), 5th(f+7), Root(f+12)] normalized to frets
+                    const norm = (val) => (val > 12 ? val - 12 : val);
+                    const eTab = [
+                        f, 
+                        norm(f + 7), 
+                        norm(f + 7), 
+                        chordType.includes('m') ? norm(f + 3) : norm(f + 4), 
+                        f, 
+                        f
+                    ];
+                    evaluateAndPushVoicing(eTab.map(String), "CAGED", `E-Formu Barre (${f}. Perde)`);
                 }
+
+                // A-form root check on A string (string index 4)
                 if ((openMidiNotes[4] + f) % 12 === rootIndex) {
-                    if (chordType === "maj") evaluateAndPushVoicing(["x", f, sf(f+2), sf(f+2), sf(f+2), f], "CAGED", `A-Formu Barre (${f}. Perde)`);
-                    if (chordType === "m")   evaluateAndPushVoicing(["x", f, sf(f+2), sf(f+2), sf(f+1), f], "CAGED", `A-Formu Minör (${f}. Perde)`);
-                    if (chordType === "7")   evaluateAndPushVoicing(["x", f, sf(f+2), f, sf(f+2), f], "CAGED", `A-Formu 7 (${f}. Perde)`);
+                    const norm = (val) => (val > 12 ? val - 12 : val);
+                    const aTab = [
+                        "x", 
+                        f, 
+                        norm(f + 7), 
+                        norm(f + 7), 
+                        chordType.includes('m') ? norm(f + 3) : norm(f + 4), 
+                        f
+                    ];
+                    evaluateAndPushVoicing(aTab.map(String), "CAGED", `A-Formu Barre (${f}. Perde)`);
                 }
             }
 
+            // 3. ABSOLUTE SAFETY FALLBACK (Guarantees valid voicings list is never empty)
             if (validVoicings.length === 0) {
                 const safeFret = (rootIndex - (40 % 12) + 12) % 12;
-                evaluateAndPushVoicing([safeFret, safeFret, sf(safeFret+1), sf(safeFret+2), "x", "x"], "Triad", "Standart Triad");
-            }
-
-            return validVoicings;
-        } catch (err) {
-            console.error("generateVoicings error:", err);
-            return [{ sys: "Error", name: "Fallback", tab: ["0","2","2","1","0","0"] }];
-        }
-    }
-
-    getVoicingFrequencies(tabArray) {
-        const openMidiNotes = [64, 59, 55, 50, 45, 40];
-        return tabArray.map((fret, stringIdx) => {
-            if (fret === "x") return null;
-            const fretNum = parseInt(fret);
-            const stringInfo = stringTunings[stringIdx];
-            return stringInfo.freq * Math.pow(2, fretNum / 12);
-        });
-    }
-
-    updateChordView() {
-        try {
-            const positions = this.generateVoicings(this.currentRoot, this.currentChordType);
-            if (this.currentPositionIndex >= positions.length) this.currentPositionIndex = 0;
-            const currentPos = positions[this.currentPositionIndex] || positions[0];
-
-            const formulaObj = this.chordFormulas[this.currentChordType] || { formula: "R, 3, 5", intervals: [0, 4, 7], construction: "", soundFeel: "" };
-            const rootIdx = noteNames.indexOf(this.currentRoot);
-            const constituentNotes = (formulaObj.intervals || [0, 4, 7]).map(i => noteNames[(rootIdx + i) % 12]);
-
-            const posBtnText = document.getElementById("pos-btn-text");
-            if (posBtnText) {
-                posBtnText.innerHTML = `🔄 Alternatif Pozisyon: <b style="color:#ffffff;">${currentPos.sys} (${currentPos.name})</b> <span style="color:var(--alt-color);">(${this.currentPositionIndex + 1} / ${positions.length})</span>`;
-            }
-
-            const chordTitle = document.getElementById("bottom-chord-title");
-            if (chordTitle) chordTitle.innerText = `${this.currentRoot} ${this.currentChordType.toUpperCase()} (Safe Engine)`;
-
-            const theoryDisplay = document.getElementById("theory-display");
-            if (theoryDisplay) {
-                const notesHTML = constituentNotes.map(n => `<span class="note-badge">${n}</span>`).join('');
-                theoryDisplay.innerHTML = `
-                    <div style="margin-bottom:8px;"><b>Akor Notaları:</b> ${notesHTML}</div>
-                    <div style="margin-bottom:8px;"><b>Aralık Formülü:</b> <span style="color:#ffb400; font-weight:bold;">${formulaObj.formula}</span></div>
-                    <div style="margin-bottom:8px;"><b>Nasıl Kurulur (Yapı):</b> ${formulaObj.construction || ""}</div>
-                    <div style="background:#121212; padding:10px; border-radius:6px; border-left:3px solid var(--alt-color); margin-top:6px;">${formulaObj.soundFeel || ""}</div>
-                `;
-            }
-
-            return { currentPos, rootIdx, intervals: formulaObj.intervals };
-        } catch (err) {
-            console.error("updateChordView error:", err);
-        }
-    }
-
-    buildControls() {
-        const rootContainer = this.container.querySelector('#chord-root-buttons');
-        if (rootContainer) {
-            rootContainer.innerHTML = '';
-            noteNames.forEach(note => {
-                const btn = document.createElement('button');
-                btn.className = 'ctrl-btn' + (note === this.currentRoot ? ' active' : '');
-                btn.textContent = note;
-                btn.onclick = () => {
-                    this.currentRoot = note;
-                    this.currentPositionIndex = 0;
-                    rootContainer.querySelectorAll('.ctrl-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    if (window.appUpdateView) window.appUpdateView();
-                };
-                rootContainer.appendChild(btn);
-            });
-        }
-
-        const qualityContainer = this.container.querySelector('#chord-quality-buttons');
-        if (qualityContainer) {
-            qualityContainer.innerHTML = '';
-            Object.keys(this.chordQualities).forEach(qKey => {
-                const btn = document.createElement('button');
-                btn.className = 'ctrl-btn' + (qKey === this.currentQuality ? ' active' : '');
-                btn.textContent = this.chordQualities[qKey].name;
-                btn.onclick = () => {
-                    this.currentQuality = qKey;
-                    this.currentChordType = this.chordQualities[qKey].types[0];
-                    this.currentPositionIndex = 0;
-                    
-                    qualityContainer.querySelectorAll('.ctrl-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    
-                    this.buildTypeControls();
-                    if (window.appUpdateView) window.appUpdateView();
-                };
-                qualityContainer.appendChild(btn);
-            });
-        }
-
-        this.buildTypeControls();
-    }
-
-    buildTypeControls() {
-        const typeContainer = this.container.querySelector('#chord-type-buttons');
-        if (!typeContainer) return;
-        typeContainer.innerHTML = '';
-        
-        const qualityObj = this.chordQualities[this.currentQuality] || this.chordQualities["maj"];
-        const allowedTypes = qualityObj.types || ["maj"];
-        if (!allowedTypes.includes(this.currentChordType)) {
-            this.currentChordType = allowedTypes[0];
-        }
-
-        allowedTypes.forEach(typeKey => {
-            const btn = document.createElement('button');
-            btn.className = 'ctrl-btn' + (typeKey === this.currentChordType ? ' active' : '');
-            btn.textContent = typeKey.toUpperCase();
-            btn.onclick = () => {
-                this.currentChordType = typeKey;
-                this.currentPositionIndex = 0;
-                typeContainer.querySelectorAll('.ctrl-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                if (window.appUpdateView) window.appUpdateView();
-            };
-            typeContainer.appendChild(btn);
-        });
-    }
-
-    attachEventListeners() {
-        const posCycleBtn = document.getElementById('position-cycle-btn');
-        if (posCycleBtn) {
-            posCycleBtn.onclick = () => {
-                const positions = this.generateVoicings(this.currentRoot, this.currentChordType);
-                this.currentPositionIndex = (this.currentPositionIndex + 1) % positions.length;
-                if (window.appUpdateView) window.appUpdateView();
-            };
-        }
-
-        const playBtn = document.getElementById('play-chord-btn');
-        if (playBtn) {
-            playBtn.onclick = () => {
-                try {
-                    const positions = this.generateVoicings(this.currentRoot, this.currentChordType);
-                    if (this.currentPositionIndex >= positions.length) this.currentPositionIndex = 0;
-                    const currentPos = positions[this.currentPositionIndex] || positions[0];
-                    const frequencies = this.getVoicingFrequencies(currentPos.tab);
-                    
-                    const speedSlider = document.getElementById('speed-slider');
-                    const speedMultiplier = speedSlider ? parseFloat(speedSlider.value) : 1.0;
-                    const delayStep = 0.115 / speedMultiplier;
-
-                    for (let index = 5; index >= 0; index--) {
-                        const freq = frequencies[index];
-                        if (freq) {
-                            const stepOrder = 5 - index;
-                            playTone(freq, stepOrder * delayStep, 1.5);
-                        }
-                    }
-                } catch (err) {
-                    console.error("Playback error:", err);
-                }
-            };
-        }
-    }
-}
+                validVoicings.push({
