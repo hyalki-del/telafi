@@ -6,7 +6,7 @@ export class ChordEngine {
         this.container = containerElement;
         this.options = Object.assign({
             totalFrets: 12,
-            maxSpan: 4, // Max fret span for human hand ergonomics
+            maxSpan: 4,
             defaultStaggerMs: 30
         }, options);
 
@@ -327,23 +327,26 @@ export class ChordEngine {
         const playBtn = document.getElementById('play-chord-btn');
         if (playBtn) {
             playBtn.onclick = () => {
-                const positions = this.generateVoicings(this.currentRoot, this.currentChordType);
-                if (this.currentPositionIndex >= positions.length) this.currentPositionIndex = 0;
-                const currentPos = positions[this.currentPositionIndex];
-                if (!currentPos) return;
-                
-                const frequencies = this.getVoicingFrequencies(currentPos.tab);
-                const speedSlider = document.getElementById('speed-slider');
-                const speedMultiplier = speedSlider ? parseFloat(speedSlider.value) : 1.0;
-                const delayStep = 0.115 / speedMultiplier;
+                try {
+                    const positions = this.generateVoicings(this.currentRoot, this.currentChordType);
+                    if (this.currentPositionIndex >= positions.length) this.currentPositionIndex = 0;
+                    const currentPos = positions[this.currentPositionIndex];
+                    if (!currentPos) return;
+                    
+                    const frequencies = this.getVoicingFrequencies(currentPos.tab);
+                    const speedSlider = document.getElementById('speed-slider');
+                    const speedMultiplier = speedSlider ? parseFloat(speedSlider.value) : 1.0;
+                    const delayStep = 0.115 / speedMultiplier;
 
-                // Flipped playback: bottom string (low E / index 5) to top string (high E / index 0)
-                for (let index = 5; index >= 0; index--) {
-                    const freq = frequencies[index];
-                    if (freq) {
-                        const stepOrder = 5 - index;
-                        playTone(freq, stepOrder * delayStep, 1.5);
+                    for (let index = 5; index >= 0; index--) {
+                        const freq = frequencies[index];
+                        if (freq) {
+                            const stepOrder = 5 - index;
+                            playTone(freq, stepOrder * delayStep, 1.5);
+                        }
                     }
+                } catch (err) {
+                    console.error("Playback error:", err);
                 }
             };
         }
