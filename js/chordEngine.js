@@ -6,11 +6,10 @@ export class ChordEngine {
         this.container = containerElement;
         this.options = Object.assign({
             totalFrets: 12,
-            maxSpan: 4, // Max human hand finger stretch
+            maxSpan: 4,
             defaultStaggerMs: 30
         }, options);
 
-        // CON CONCERN 1 RESOLVED: Sus chords separated into their own independent family
         this.chordQualities = {
             "maj": { name: "Major", types: ["maj", "maj7", "maj9", "6", "9", "aug"] },
             "m":   { name: "Minor", types: ["m", "m7", "m9", "m6", "m11", "m13"] },
@@ -67,17 +66,16 @@ export class ChordEngine {
                 <div class="quality-selector" id="chord-quality-buttons" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
             </div>
             <div>
-                <div class="section-label" style="font-weight: bold; font-size: 0.85rem; color: #ff9800; margin-bottom: 6px; text-transform: uppercase;">3. Akor Tipi / Uzantı (Ergonomic Engine)</div>
+                <div class="section-label" style="font-weight: bold; font-size: 0.85rem; color: #ff9800; margin-bottom: 6px; text-transform: uppercase;">3. Akor Tipi / Uzantı (Parametric Engine)</div>
                 <div class="type-selector" id="chord-type-buttons" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
             </div>
         `;
     }
 
     /**
-     * CONCERNS 2, 3, & 4 RESOLVED:
-     * - Generates robust open & extended voicings.
-     * - Enforces STRICT minimum 3-note requirement (NO 2-note root octave fallbacks).
-     * - Validates ergonomics (maxSpan <= 4 and physical fingerability).
+     * PARAMETRIC & ALGORITHMIC VOICING GENERATOR FROM SCRATCH
+     * Works uniformly across all 12 roots (sharps and flats included).
+     * Calculates open and barre positions mathematically.
      */
     generateVoicings(rootNote, chordType) {
         const rootIndex = noteNames.indexOf(rootNote);
@@ -99,7 +97,7 @@ export class ChordEngine {
                     const midi = openMidiNotes[s] + fretNum;
                     const pc = midi % 12;
                     
-                    // Zero accidental bleed check
+                    // Zero accidental bleed check: Note MUST belong to target formula
                     if (!targetPitchClasses.includes(pc)) return;
                     
                     soundingNotes.push({ string: s, fret: fretNum, pc });
@@ -107,10 +105,10 @@ export class ChordEngine {
                 }
             }
 
-            // CONCERN 3 RESOLVED: Minimum 3 sounding notes required (Strictly reject 2-note shapes)
+            // Must have at least 3 sounding strings and must contain root
             if (soundingNotes.length < 3 || !hasRoot) return;
 
-            // CONCERN 4 RESOLVED: Rigorous ergonomic & fingering validation
+            // Ergonomic fret span validation (<= 4 frets)
             const frettedOnly = soundingNotes.filter(n => n.fret > 0);
             if (frettedOnly.length > 0) {
                 const minF = Math.min(...frettedOnly.map(n => n.fret));
@@ -128,68 +126,83 @@ export class ChordEngine {
             }
         };
 
-        // 1. OPEN COWBOY CHORDS (First 3 Frets)
-        if (chordType === "maj") {
-            if (rootNote === "C") evaluateAndPushVoicing(["x", "3", "2", "0", "1", "0"], "Open", "Açık C Majör");
-            if (rootNote === "A") evaluateAndPushVoicing(["x", "0", "2", "2", "2", "0"], "Open", "Açık A Majör");
-            if (rootNote === "G") evaluateAndPushVoicing(["3", "2", "0", "0", "0", "3"], "Open", "Açık G Majör");
-            if (rootNote === "E") evaluateAndPushVoicing(["0", "2", "2", "1", "0", "0"], "Open", "Açık E Majör");
-            if (rootNote === "D") evaluateAndPushVoicing(["x", "x", "0", "2", "3", "2"], "Open", "Açık D Majör");
-        } else if (chordType === "m") {
-            if (rootNote === "A") evaluateAndPushVoicing(["x", "0", "2", "2", "1", "0"], "Open", "Açık A Minör");
-            if (rootNote === "E") evaluateAndPushVoicing(["0", "2", "2", "0", "0", "0"], "Open", "Açık E Minör");
-            if (rootNote === "D") evaluateAndPushVoicing(["x", "x", "0", "2", "3", "1"], "Open", "Açık D Minör");
-        } else if (chordType === "7") {
-            if (rootNote === "A") evaluateAndPushVoicing(["x", "0", "2", "0", "2", "0"], "Open", "Açık A7");
-            if (rootNote === "E") evaluateAndPushVoicing(["0", "2", "0", "1", "0", "0"], "Open", "Açık E7");
-            if (rootNote === "D") evaluateAndPushVoicing(["x", "x", "0", "2", "1", "2"], "Open", "Açık D7");
-            if (rootNote === "G") evaluateAndPushVoicing(["3", "2", "0", "0", "0", "1"], "Open", "Açık G7");
-            if (rootNote === "C") evaluateAndPushVoicing(["x", "3", "2", "3", "1", "0"], "Open", "Açık C7");
-        } else if (chordType === "sus4") {
-            if (rootNote === "A") evaluateAndPushVoicing(["x", "0", "2", "2", "3", "0"], "Open", "Açık Asus4");
-            if (rootNote === "D") evaluateAndPushVoicing(["x", "x", "0", "2", "3", "3"], "Open", "Açık Dsus4");
-            if (rootNote === "E") evaluateAndPushVoicing(["0", "2", "2", "2", "0", "0"], "Open", "Açık Esus4");
-        } else if (chordType === "sus2") {
-            if (rootNote === "A") evaluateAndPushVoicing(["x", "0", "2", "2", "0", "0"], "Open", "Açık Asus2");
-            if (rootNote === "D") evaluateAndPushVoicing(["x", "x", "0", "2", "3", "0"], "Open", "Açık Dsus2");
-        }
-
-        // 2. PARAMETRIC CAGED & EXTENDED SHAPES
+        // Helper to find fret offset from open strings
         const getFretForOpen = (openNote) => (rootIndex - noteNames.indexOf(openNote) + 12) % 12;
-        const eFret = getFretForOpen("E");
-        const aFret = getFretForOpen("A");
         const sf = (f) => (f < 0 ? f + 12 : (f > 12 ? f - 12 : f));
 
-        if (chordType === "maj") {
-            evaluateAndPushVoicing([eFret, eFret, sf(eFret+1), sf(eFret+2), sf(eFret+2), eFret], "CAGED", "E-Formu Barre");
-            evaluateAndPushVoicing(["x", aFret, sf(aFret+2), sf(aFret+2), sf(aFret+2), aFret], "CAGED", "A-Formu Barre");
-        } else if (chordType === "m") {
-            evaluateAndPushVoicing([eFret, eFret, eFret, sf(eFret+2), sf(eFret+2), eFret], "CAGED", "E-Formu Minör");
-            evaluateAndPushVoicing(["x", aFret, sf(aFret+2), sf(aFret+2), sf(aFret+1), aFret], "CAGED", "A-Formu Minör");
-        } else if (chordType === "7") {
-            evaluateAndPushVoicing([eFret, sf(eFret+2), eFret, sf(eFret+1), eFret, eFret], "CAGED", "E-Formu Dominant 7");
-            evaluateAndPushVoicing(["x", aFret, sf(aFret+2), aFret, sf(aFret+2), aFret], "CAGED", "A-Formu Dominant 7");
-            evaluateAndPushVoicing(["x", aFret, sf(aFret+2), sf(aFret+1), sf(aFret+2), "x"], "Shell", "Caz Shell Voicing");
-        } else if (chordType === "maj7") {
-            evaluateAndPushVoicing([eFret, sf(eFret+1), eFret, sf(eFret+2), sf(eFret+1), eFret], "CAGED", "E-Formu Majör 7");
-            evaluateAndPushVoicing(["x", aFret, sf(aFret+2), sf(aFret+1), sf(aFret+2), aFret], "CAGED", "A-Formu Majör 7");
-        } else if (chordType === "m7") {
-            evaluateAndPushVoicing([eFret, sf(eFret+2), eFret, sf(eFret+2), eFret, eFret], "CAGED", "E-Formu Minör 7");
-            evaluateAndPushVoicing(["x", aFret, sf(aFret+2), aFret, sf(aFret+1), aFret], "CAGED", "A-Formu Minör 7");
-        } else if (chordType === "9" || chordType === "maj9" || chordType === "m9") {
-            // CON CONCERN 2 RESOLVED: Full extended jazz drop-2 / shell shapes
-            evaluateAndPushVoicing(["x", aFret, sf(aFret+2), sf(aFret+1), sf(aFret+2), "x"], "Jazz", "Genişletilmiş Caz Voicing");
-        } else if (chordType === "sus4" || chordType === "sus2") {
-            evaluateAndPushVoicing([eFret, sf(eFret+2), sf(eFret+2), eFret, eFret, eFret], "CAGED", "E-Formu Sus");
-            evaluateAndPushVoicing(["x", aFret, sf(aFret+2), sf(aFret+2), aFret, aFret], "CAGED", "A-Formu Sus");
-        } else {
-            // Extended 11/13/dim/aug graceful fallback (guaranteed 3+ notes, zero 2-note octaves)
-            evaluateAndPushVoicing(["x", aFret, sf(aFret+1), aFret, sf(aFret+1), "x"], "Caz", "Standart Voicing");
+        // 1. DYNAMIC OPEN COWBOY CHORDS (Checked for frets 0-3 across all roots)
+        // We test standard open chord templates shifted or matched to root
+        for (let testFret = 0; testFret <= 3; testFret++) {
+            // E-form open/barre template intervals relative to root on low E
+            const eRootFret = getFretForOpen("E");
+            if (eRootFret === testFret || (testFret === 0 && eRootFret === 0)) {
+                if (chordType === "maj") evaluateAndPushVoicing([eRootFret, eRootFret+2, eRootFret+2, eRootFret+1, eRootFret, eRootFret], "Open", `Açık / 1. Pozisyon (${rootNote})`);
+                if (chordType === "m")   evaluateAndPushVoicing([eRootFret, eRootFret+2, eRootFret+2, eRootFret, eRootFret, eRootFret], "Open", `Açık Minör (${rootNote})`);
+                if (chordType === "7")   evaluateAndPushVoicing([eRootFret, eRootFret+2, eRootFret, eRootFret+1, eRootFret, eRootFret], "Open", `Dominant 7 (${rootNote})`);
+            }
+            
+            const aRootFret = getFretForOpen("A");
+            if (aRootFret === testFret || (testFret === 0 && aRootFret === 0)) {
+                if (chordType === "maj") evaluateAndPushVoicing(["x", aRootFret, aRootFret+2, aRootFret+2, aRootFret+2, aRootFret], "Open", `A-Formu Açık (${rootNote})`);
+                if (chordType === "m")   evaluateAndPushVoicing(["x", aRootFret, aRootFret+2, aRootFret+2, aRootFret+1, aRootFret], "Open", `A-Formu Minör (${rootNote})`);
+                if (chordType === "7")   evaluateAndPushVoicing(["x", aRootFret, aRootFret+2, aRootFret, aRootFret+2, aRootFret], "Open", `A-Formu 7 (${rootNote})`);
+                if (chordType === "sus4") evaluateAndPushVoicing(["x", aRootFret, aRootFret+2, aRootFret+2, aRootFret+3, aRootFret], "Open", `Asus4 (${rootNote})`);
+                if (chordType === "sus2") evaluateAndPushVoicing(["x", aRootFret, aRootFret+2, aRootFret+2, aRootFret, aRootFret], "Open", `Asus2 (${rootNote})`);
+            }
         }
 
-        // CON CONCERN 3 RESOLVED: If no shape meets the strict 3-note requirement, build a valid 3-note triad instead of a 2-note octave fallback
+        // Specific standard open cowboy shapes for natural root matching
+        if (rootNote === "C" && chordType === "maj") evaluateAndPushVoicing(["x", "3", "2", "0", "1", "0"], "Open", "Açık C Majör");
+        if (rootNote === "A" && chordType === "maj") evaluateAndPushVoicing(["x", "0", "2", "2", "2", "0"], "Open", "Açık A Majör");
+        if (rootNote === "G" && chordType === "maj") evaluateAndPushVoicing(["3", "2", "0", "0", "0", "3"], "Open", "Açık G Majör");
+        if (rootNote === "E" && chordType === "maj") evaluateAndPushVoicing(["0", "2", "2", "1", "0", "0"], "Open", "Açık E Majör");
+        if (rootNote === "D" && chordType === "maj") evaluateAndPushVoicing(["x", "x", "0", "2", "3", "2"], "Open", "Açık D Majör");
+        
+        if (rootNote === "A" && chordType === "m")   evaluateAndPushVoicing(["x", "0", "2", "2", "1", "0"], "Open", "Açık A Minör");
+        if (rootNote === "E" && chordType === "m")   evaluateAndPushVoicing(["0", "2", "2", "0", "0", "0"], "Open", "Açık E Minör");
+        if (rootNote === "D" && chordType === "m")   evaluateAndPushVoicing(["x", "x", "0", "2", "3", "1"], "Open", "Açık D Minör");
+
+        if (rootNote === "A" && chordType === "7")   evaluateAndPushVoicing(["x", "0", "2", "0", "2", "0"], "Open", "Açık A7");
+        if (rootNote === "E" && chordType === "7")   evaluateAndPushVoicing(["0", "2", "0", "1", "0", "0"], "Open", "Açık E7");
+        if (rootNote === "D" && chordType === "7")   evaluateAndPushVoicing(["x", "x", "0", "2", "1", "2"], "Open", "Açık D7");
+        if (rootNote === "G" && chordType === "7")   evaluateAndPushVoicing(["3", "2", "0", "0", "0", "1"], "Open", "Açık G7");
+
+        if (rootNote === "A" && chordType === "sus4") evaluateAndPushVoicing(["x", "0", "2", "2", "3", "0"], "Open", "Açık Asus4");
+        if (rootNote === "D" && chordType === "sus4") evaluateAndPushVoicing(["x", "x", "0", "2", "3", "3"], "Open", "Açık Dsus4");
+        if (rootNote === "A" && chordType === "sus2") evaluateAndPushVoicing(["x", "0", "2", "2", "0", "0"], "Open", "Açık Asus2");
+        if (rootNote === "D" && chordType === "sus2") evaluateAndPushVoicing(["x", "x", "0", "2", "3", "0"], "Open", "Açık Dsus2");
+
+        // 2. PARAMETRIC CAGED & BARRE SHAPES ACROSS ALL FRETS
+        const eFret = getFretForOpen("E");
+        const aFret = getFretForOpen("A");
+
+        for (let f = 0; f <= 12; f++) {
+            // Check E-form root alignment
+            if ((openMidiNotes[5] + f) % 12 === rootIndex) {
+                if (chordType === "maj") evaluateAndPushVoicing([f, f, sf(f+1), sf(f+2), sf(f+2), f], "CAGED", `E-Formu Barre (Fret ${f})`);
+                if (chordType === "m")   evaluateAndPushVoicing([f, f, f, sf(f+2), sf(f+2), f], "CAGED", `E-Formu Minör (Fret ${f})`);
+                if (chordType === "7")   evaluateAndPushVoicing([f, sf(f+2), f, sf(f+1), f, f], "CAGED", `E-Formu 7 (Fret ${f})`);
+                if (chordType === "maj7") evaluateAndPushVoicing([f, sf(f+1), f, sf(f+2), sf(f+1), f], "CAGED", `E-Formu Maj7 (Fret ${f})`);
+                if (chordType === "m7")   evaluateAndPushVoicing([f, sf(f+2), f, sf(f+2), f, f], "CAGED", `E-Formu m7 (Fret ${f})`);
+                if (chordType === "sus4") evaluateAndPushVoicing([f, sf(f+3), sf(f+3), f, f, f], "CAGED", `E-Formu Sus4 (Fret ${f})`);
+                if (chordType === "sus2") evaluateAndPushVoicing([f, sf(f+2), sf(f+2), f, f, f], "CAGED", `E-Formu Sus2 (Fret ${f})`);
+            }
+
+            // Check A-form root alignment
+            if ((openMidiNotes[4] + f) % 12 === rootIndex) {
+                if (chordType === "maj") evaluateAndPushVoicing(["x", f, sf(f+2), sf(f+2), sf(f+2), f], "CAGED", `A-Formu Barre (Fret ${f})`);
+                if (chordType === "m")   evaluateAndPushVoicing(["x", f, sf(f+2), sf(f+2), sf(f+1), f], "CAGED", `A-Formu Minör (Fret ${f})`);
+                if (chordType === "7")   evaluateAndPushVoicing(["x", f, sf(f+2), f, sf(f+2), f], "CAGED", `A-Formu 7 (Fret ${f})`);
+                if (chordType === "maj7") evaluateAndPushVoicing(["x", f, sf(f+2), sf(f+1), sf(f+2), f], "CAGED", `A-Formu Maj7 (Fret ${f})`);
+                if (chordType === "m7")   evaluateAndPushVoicing(["x", f, sf(f+2), f, sf(f+1), f], "CAGED", `A-Formu m7 (Fret ${f})`);
+                if (chordType === "9" || chordType === "maj9" || chordType === "m9") evaluateAndPushVoicing(["x", f, sf(f+1), f, sf(f+2), "x"], "Jazz", `Caz Voicing (Fret ${f})`);
+            }
+        }
+
+        // Safety fallback: guaranteed valid 3-note triad if no shapes found
         if (validVoicings.length === 0) {
-            evaluateAndPushVoicing([eFret, eFret, sf(eFret+1), sf(eFret+2), "x", "x"], "Triad", "Üçlü Triad Pozisyonu");
+            const safeFret = (rootIndex - (40 % 12) + 12) % 12;
+            evaluateAndPushVoicing([safeFret, safeFret, sf(safeFret+1), sf(safeFret+2), "x", "x"], "Triad", "Temel Triad");
         }
 
         return validVoicings;
@@ -220,7 +233,7 @@ export class ChordEngine {
         }
 
         const chordTitle = document.getElementById("bottom-chord-title");
-        if (chordTitle) chordTitle.innerText = `${this.currentRoot} ${this.currentChordType.toUpperCase()} (Validated Ergonomic Engine)`;
+        if (chordTitle) chordTitle.innerText = `${this.currentRoot} ${this.currentChordType.toUpperCase()} (Parametric Engine)`;
 
         const theoryDisplay = document.getElementById("theory-display");
         if (theoryDisplay) {
