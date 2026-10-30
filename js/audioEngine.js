@@ -8,27 +8,29 @@ export function setSoundEngine(val) {
     currentSoundEngine = val;
 }
 
-function initAudio() {
+// Guaranteed synchronous/asynchronous sync for browser audio policy
+function getAudioContext() {
     if (!audioCtx) {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         audioCtx = new AudioContextClass();
     }
     if (audioCtx.state === 'suspended') {
-        audioCtx.resume().catch(err => console.warn("AudioContext resume error:", err));
+        audioCtx.resume();
     }
+    return audioCtx;
 }
 
 export function playTone(frequency, startTime = 0, duration = 2.0, targetGainNode = null) {
-    initAudio();
-    if (!audioCtx) return;
+    const ctx = getAudioContext();
+    if (!ctx) return;
 
-    const now = audioCtx.currentTime;
+    const now = ctx.currentTime;
     const start = now + startTime;
 
-    const osc1 = audioCtx.createOscillator();
-    const osc2 = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    const destination = targetGainNode || audioCtx.destination;
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    const destination = targetGainNode || ctx.destination;
 
     if (currentSoundEngine === 'piano') {
         osc1.type = 'sine';
@@ -48,7 +50,7 @@ export function playTone(frequency, startTime = 0, duration = 2.0, targetGainNod
         osc1.frequency.setValueAtTime(frequency, start);
         osc2.frequency.setValueAtTime(frequency, start);
 
-        const filter = audioCtx.createBiquadFilter();
+        const filter = ctx.createBiquadFilter();
         filter.type = 'lowpass';
         filter.frequency.setValueAtTime(Math.min(frequency * 4.0, 8000), start);
 
@@ -72,16 +74,16 @@ export function playTone(frequency, startTime = 0, duration = 2.0, targetGainNod
 }
 
 export function startBendingNote(frequency, fretElement, stringPathEl, fretLeftX, clientY) {
-    initAudio();
+    const ctx = getAudioContext();
     if (safetyTimeout) clearTimeout(safetyTimeout);
-    if (!audioCtx) return;
+    if (!ctx) return;
 
     initialY = clientY;
-    const now = audioCtx.currentTime;
+    const now = ctx.currentTime;
     
-    const osc1 = audioCtx.createOscillator();
-    const osc2 = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gainNode = ctx.createGain();
 
     osc1.type = currentSoundEngine === 'piano' ? 'sine' : 'sawtooth';
     osc2.type = 'triangle';
@@ -91,14 +93,14 @@ export function startBendingNote(frequency, fretElement, stringPathEl, fretLeftX
     gainNode.gain.setValueAtTime(0.0001, now);
     gainNode.gain.linearRampToValueAtTime(0.4, now + 0.015);
 
-    const filter = audioCtx.createBiquadFilter();
+    const filter = ctx.createBiquadFilter();
     filter.type = 'lowpass';
     filter.frequency.setValueAtTime(frequency * 3.5, now);
 
     osc1.connect(filter);
     osc2.connect(filter);
     filter.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
+    gainNode.connect(ctx.destination);
 
     osc1.start(now);
     osc2.start(now);
@@ -116,13 +118,16 @@ export function startBendingNote(frequency, fretElement, stringPathEl, fretLeftX
 }
 
 export function updateBend(currentY) {
-    if (!activeBend || !audioCtx) return;
+    if (!activeBend) return;
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
     let deltaY = currentY - initialY;
     let bendMagnitude = Math.abs(deltaY);
     let bendSemitones = Math.min(2, (bendMagnitude / 50) * 2);
     let newFreq = activeBend.baseFreq * Math.pow(2, bendSemitones / 12);
 
-    const now = audioCtx.currentTime;
+    const now = ctx.currentTime;
     activeBend.osc1.frequency.setValueAtTime(newFreq, now);
     activeBend.osc2.frequency.setValueAtTime(newFreq, now);
 
@@ -133,10 +138,13 @@ export function updateBend(currentY) {
 }
 
 export function releaseBend() {
-    if (!activeBend || !audioCtx) return;
+    if (!activeBend) return;
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
     if (safetyTimeout) clearTimeout(safetyTimeout);
 
-    const now = audioCtx.currentTime;
+    const now = ctx.currentTime;
     activeBend.gainNode.gain.setValueAtTime(activeBend.gainNode.gain.value, now);
     activeBend.gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
 
