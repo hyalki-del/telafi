@@ -1,21 +1,23 @@
 import { startBendingNote, updateBend, releaseBend } from './audioEngine.js';
 
+// ChordEngine ve diğer motorlarla tam uyumlu Yüksekten Düşüğe Tel Sıralaması (High E -> Low E)
 export const stringTunings = [
-    { name: 'E4', freq: 329.63 },
-    { name: 'B3', freq: 246.94 },
-    { name: 'G3', freq: 196.00 },
-    { name: 'D3', freq: 146.83 },
-    { name: 'A2', freq: 110.00 },
-    { name: 'E2', freq: 82.41  }
+    { name: 'E4', freq: 329.63 }, // 0: High E
+    { name: 'B3', freq: 246.94 }, // 1: B
+    { name: 'G3', freq: 196.00 }, // 2: G
+    { name: 'D3', freq: 146.83 }, // 3: D
+    { name: 'A2', freq: 110.00 }, // 4: A
+    { name: 'E2', freq: 82.41  }  // 5: Low E
 ];
 
 export const noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-const openMidiNotes = [64, 59, 55, 50, 45, 40];
+const openMidiNotes = [64, 59, 55, 50, 45, 40]; // High E'den Low E'ye MIDI başlangıçları
 const totalFrets = 12;
 const inlayFrets = [3, 5, 7, 9, 12];
 
 export function buildFretboard() {
     const fretboardEl = document.getElementById('fretboard');
+    if (!fretboardEl) return;
     fretboardEl.innerHTML = '';
 
     // DOM Reflow maliyetini sıfırlamak için DocumentFragment kullanıyoruz
@@ -90,4 +92,39 @@ export function buildFretboard() {
     window.addEventListener('mouseup', () => { releaseBend(); });
     window.addEventListener('touchmove', (e) => { updateBend(e.touches[0].clientY); }, { passive: false });
     window.addEventListener('touchend', () => { releaseBend(); });
+}
+
+/**
+ * Akor veya gam verilerini fretboard üzerinde görsel olarak işaretler.
+ * tabArray: Örn. ["0", "2", "2", "2", "0", "x"] (High E -> Low E sırasıyla)
+ * rootNoteIndex: Kök notanın nota indeksi (0-11 arası)
+ */
+export function renderVoicingOnFretboard(tabArray, rootNoteIndex = null) {
+    // Önce tüm aktif/kök işaretlerini temizle
+    const allFrets = document.querySelectorAll('.fret');
+    allFrets.forEach(f => {
+        f.classList.remove('active', 'root-note', 'chord-note');
+        const marker = f.querySelector('.note-marker');
+        if (marker) marker.style.display = ''; // Varsayılan görünürlük
+    });
+
+    if (!tabArray || !Array.isArray(tabArray)) return;
+
+    tabArray.forEach((fretVal, stringIndex) => {
+        if (fretVal === "x" || fretVal === null || fretVal === undefined) return;
+        const fretNum = parseInt(fretVal);
+        if (isNaN(fretNum)) return;
+
+        // İlgili tel ve perdedeki DOM elementini bul
+        const targetFretEl = document.querySelector(`.fret[data-string="${stringIndex}"][data-fret="${fretNum}"]`);
+        if (targetFretEl) {
+            targetFretEl.classList.add('active', 'chord-note');
+            
+            // Eğer basılan nota akorun kök notası ise özel sınıf ekle
+            const noteName = targetFretEl.dataset.note;
+            if (rootNoteIndex !== null && noteNames[rootNoteIndex] === noteName) {
+                targetFretEl.classList.add('root-note');
+            }
+        }
+    });
 }
